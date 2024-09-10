@@ -23,6 +23,7 @@ public class ScheduleAuth {
   @Scheduled(cron = "14 14 3,5 * * ?")
   public void scheduleTaskUsingCronExpression() {
     if (stsNewMbrs) {
+
       long now = System.currentTimeMillis();
       log.info("schedule tasks using cron jobs - {}", now);
 

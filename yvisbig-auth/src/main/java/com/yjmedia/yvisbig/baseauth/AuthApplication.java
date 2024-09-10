@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.yjmedia.yvisbig.baseauth",
         "com.yjmedia.yvisbig.bizcom",
 })
-@EnableScheduling // 추가
+//@EnableScheduling // 추가
 public class AuthApplication {
     public static void main(String[] args)
     {
