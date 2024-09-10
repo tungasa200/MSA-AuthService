@@ -1,0 +1,168 @@
+spring:
+  profiles:
+    active: local # default
+    group:
+      local:  # local, common profile을 그룹지어 함께 어플리케이션 구동
+        - common
+      dev:   # dev, common profile을 그룹지어 함께 어플리케이션 구동
+        - common
+      prod:   # prod, common profile을 그룹지어 함께 어플리케이션 구동
+        - common
+
+---
+spring:
+  config:
+    activate:
+      on-profile: common
+  application:
+    name: auth-service
+server:
+  port: 8085
+
+
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    hikari:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/yvisbig_local?autoReconnect=true&useSSL=false&amp&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+      username: mysql
+      password: 1234
+      maximum-pool-size: 10
+  redis:
+    lettuce:
+      pool.max-active: 10
+      pool.max-idle: 10
+      pool.min-idle: 2
+    port: 6379
+    host: localhost
+    password: REMOVED_PASSWORD
+    sessiontime: 3600000
+    sessionUseYn: Y
+    keyprefix: LOCAL
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://127.0.0.1:8761/eureka
+  instance:
+    hostname: localhost
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+
+logging:
+  file:
+    path: "C:\\Temp\\"
+    name: "auth"
+  level:
+    p6spy: info
+  server:
+    version: V1
+    id: AUTH
+
+jwt:
+  header: Authorization
+  system-secret: REMOVED_JWT_SECRET
+  token-validity-in-seconds: 86400  #하루
+  refresh-token-validity-in-seconds: 604800  # 7일
+
+spring-doc:
+  packages-to-scan: com.yjmedia.yvisbig.baseauth
+  default-consumes-media-type: application/json;charset=UTF-8
+  swagger-ui:
+    disable-swagger-default-url: true   #디폴트 페이지 안나오게
+    path: swagger-ui.html            # Swagger UI 경로 => localhost:8000/demo-ui.html
+    tags-sorter: alpha            # alpha: 알파벳 순 태그 정렬, method: HTTP Method 순 정렬
+    operations-sorter: alpha      # alpha: 알파벳 순 태그 정렬, method: HTTP Method 순 정렬
+  api-docs:
+    path: /api-docs/json
+    groups:
+      enabled: true
+  cache:
+    disabled: true
+
+batch:
+  sts:
+    newmbrs: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    hikari:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/yvisbig_local?autoReconnect=true&useSSL=false&amp&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+      username: dev
+      password: REMOVED_PASSWORD
+      maximum-pool-size: 10
+  redis:
+    lettuce:
+      pool.max-active: 10
+      pool.max-idle: 10
+      pool.min-idle: 2
+    port: 6379
+    host: REMOVED_REDIS_HOST
+    password: REMOVED_PASSWORD
+    sessiontime: 3600000
+    sessionUseYn: Y
+    keyprefix: DEV
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://127.0.0.1:8761/eureka
+  instance:
+    hostname: localhost
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+logging:
+  file:
+    path: "/opt/project_kdmp/msasvr_auth/logs"
+    name: "auth"
+  level:
+    p6spy: info
+  server:
+    version: V1
+    id: AUTH
+
+jwt:
+  header: Authorization
+  system-secret: REMOVED_JWT_SECRET
+  token-validity-in-seconds: 86400
+  refresh-token-validity-in-seconds: 604800  # token-validity-in-seconds 기본 + 60분 ==> 클라이언트 테스트를 위한 259200
+
+
+spring-doc:
+  packages-to-scan: com.yjmedia.yvisbig.baseauth
+  default-consumes-media-type: application/json;charset=UTF-8
+  swagger-ui:
+    disable-swagger-default-url: true   #디폴트 페이지 안나오게
+    path: swagger-ui.html            # Swagger UI 경로 => localhost:8000/demo-ui.html
+    tags-sorter: alpha            # alpha: 알파벳 순 태그 정렬, method: HTTP Method 순 정렬
+    operations-sorter: alpha      # alpha: 알파벳 순 태그 정렬, method: HTTP Method 순 정렬
+  api-docs:
+    path: /api-docs/json
+    groups:
+      enabled: true
+  cache:
+    disabled: true
+
+batch:
+  sts:
+    newmbrs: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod

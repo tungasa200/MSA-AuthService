@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<!-- db컬럼 camel표기 : user_name -> userName으로 자동 변환 : 기본값 false -->
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+
+		<!-- 가져온 값이 null일 때 setter나 맵의 put 메소드를 호출할지를 명시 : 기본값 false -->
+		<setting name="callSettersOnNulls" value="true"/>
+
+		<!-- JDBC 타입을 파라미터에 제공하지 않을때 null값을 처리한 JDBC타입을 명시 -->
+		<setting name="jdbcTypeForNull" value="NULL"/>
+
+		<!-- logging 은 p6spy 로 대체 -->
+		<setting name="logImpl" value="NO_LOGGING" />
+
+	</settings>
+	<typeAliases>
+		<package name="com.yjmedia.yvisbig.bizcom.dto" />
+	</typeAliases>
+	
+	
+</configuration>
