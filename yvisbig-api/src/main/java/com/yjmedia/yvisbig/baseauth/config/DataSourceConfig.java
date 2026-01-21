@@ -41,9 +41,9 @@ public class DataSourceConfig {
 
     @Bean(name="dataSource")
     @Primary
-    @ConfigurationProperties("spring.datasource.hikari")
+    @ConfigurationProperties("spring.datasource")
     public DataSource dataSource() {
-        return DataSourceBuilder.create().type(HikariDataSource.class).build();
+        return DataSourceBuilder.create().build();
     }
 
     @Bean(name="sqlSessionFactory")

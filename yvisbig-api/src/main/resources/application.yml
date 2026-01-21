@@ -27,12 +27,19 @@ spring:
     activate:
       on-profile: local
   datasource:
-    hikari:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/yvisbig_local?autoReconnect=true&useSSL=false&amp&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-      username: mysql
-      password: 1234
-      maximum-pool-size: 10
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
   redis:
     lettuce:
       pool.max-active: 10
@@ -40,9 +47,9 @@ spring:
       pool.min-idle: 2
     port: 6379
     host: localhost
-    password: REMOVED_PASSWORD
+    password:
     sessiontime: 3600000
-    sessionUseYn: Y
+    sessionUseYn: N
     keyprefix: LOCAL
 
 eureka:

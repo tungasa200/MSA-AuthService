@@ -1331,19 +1331,20 @@ java -jar -Dspring.profiles.active=prod \
 
 Local 환경에서는 외부 MySQL/Redis 없이 H2 인메모리 데이터베이스로 테스트할 수 있습니다.
 
+> **Note**: yvisbig-auth와 yvisbig-api 모두 H2를 지원합니다.
+
 #### H2 Console 접속 정보
 
-| 항목 | 값 |
-|------|-----|
-| URL | http://localhost:8085/h2-console |
-| JDBC URL | `jdbc:h2:mem:testdb` |
-| Driver Class | `org.h2.Driver` |
-| Username | `sa` |
-| Password | (빈값) |
+| 모듈 | URL | JDBC URL | Username | Password |
+|------|-----|----------|----------|----------|
+| yvisbig-auth | http://localhost:8085/h2-console | `jdbc:h2:mem:testdb` | `sa` | (빈값) |
+| yvisbig-api | http://localhost:8087/h2-console | `jdbc:h2:mem:testdb` | `sa` | (빈값) |
+
+> Driver Class: `org.h2.Driver` (공통)
 
 #### 자동 생성 테이블
 
-애플리케이션 시작 시 `schema.sql`과 `data.sql`이 자동 실행됩니다.
+각 모듈 시작 시 `schema.sql`과 `data.sql`이 자동 실행됩니다.
 
 **schema.sql** - 테이블 구조:
 ```sql
