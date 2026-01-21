@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <springProperty name="ACTIVE_PROFILE" source="spring.profiles.active" defaultValue="dev"/>
+    <springProperty name="APPLICATION_NAME" source="spring.application.name" defaultValue="none"/>
+    <!-- 로그 root 레벨 -->
+    <springProperty name="ROOT_LOG_LEVEL" source="logging.level.root" />
+
+    <!-- 로그 저장 경로 -->
+    <springProperty name="LOG_ROOT_PATH" source="logging.file.path" />
+
+    <springProperty name="LOG_FILE_NAME" source="logging.file.name" />
+
+    <!--<property name="LOG_PATH" value="logs"/>-->
+    <property name="LOG_FILE" value="${LOG_ROOT_PATH}/${LOG_FILE_NAME}.log" />
+    <property name="ERROR_LOG_FILE" value="${LOG_PATH}/error.log" />
+    <property name="TRANSACTION_LOG_FILE" value="${LOG_PATH}/trans.log" />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level][%thread]\(%file:%line\) %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE}.%d{yyyyMMdd}</fileNamePattern>
+            <maxHistory>15</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level][%thread]\(%file:%line\) %logger{150} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${ERROR_LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${ERROR_LOG_FILE}.%d{yyyyMMdd}</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level][%thread]\(%file:%line\) %logger{150} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="TRANSACTION_LOG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${TRANSACTION_LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${TRANSACTION_LOG_FILE}.%d{yyyyMMdd}</fileNamePattern>
+            <maxHistory>15</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level][%thread]\(%file:%line\) %logger{150} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- SQL문만을 로그로 남기며, PreparedStatement일 경우 관련된 argument 값으로 대체된 SQL문이 보여진다. -->
+    <logger name="com.yjmedia.yvisbig.baseauth" level="DEBUG"></logger>
+    <logger name="org.apache.ibatis" level="INFO"/>
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+    <logger name="org.apache.commons" level="INFO"/>
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.mybatis.spring" level="INFO"/>
+    <logger name="org.apache.http" level="INFO"/>
+    <logger name="io.lettuce.core" level="INFO" />
+    <logger name="sql" level="ERROR"></logger>
+    <!-- SQL문만을 로그로 남기며, PreparedStatement일 경우 관련된 argument 값으로 대체된 SQL문이 보여진다. -->
+    <logger name="jdbc.sqlonly" additivity="false" level="INFO" >    </logger>
+
+
+    <!-- TRACE > DEBUG > INFO > WARN > ERROR -->
+    <springProfile name="local,default">
+        <root level="DEBUG">
+            <appender-ref ref="STDOUT" />
+        </root>
+    </springProfile>
+    <springProfile name="dev">
+        <root level="INFO">
+            <appender-ref ref="FILE" />
+            <appender-ref ref="ERROR_FILE" />
+        </root>
+    </springProfile>
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="FILE" />
+            <appender-ref ref="ERROR_FILE" />
+        </root>
+    </springProfile>
+</configuration>

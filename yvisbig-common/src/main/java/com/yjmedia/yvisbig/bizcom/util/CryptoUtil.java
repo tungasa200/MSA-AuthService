@@ -57,29 +57,23 @@ public class CryptoUtil {
 	 * @param msg
 	 * @return
 	 */
-	public static String getHMAC(String msg, String secretKey, String algorithm)  throws NoSuchAlgorithmException {
+	public static String getHMAC(String msg, String secretKey, String algorithm)  throws NoSuchAlgorithmException, InvalidKeyException  {
 
-		try{
-			Mac mac = Mac.getInstance(algorithm); //HmacSHA256
+		Mac mac = Mac.getInstance(algorithm); //HmacSHA256
 
-			SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), algorithm);
-			mac.init(secretKeySpec);
+		SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), algorithm);
+		mac.init(secretKeySpec);
 
-			// 메시지에 대해 HMAC 계산
-			byte[] hmacBytes = mac.doFinal(msg.getBytes(StandardCharsets.UTF_8));
+		// 메시지에 대해 HMAC 계산
+		byte[] hmacBytes = mac.doFinal(msg.getBytes(StandardCharsets.UTF_8));
 
-			// 결과를 Base64로 인코딩
-			//String hmacBase64 = Base64.getEncoder().encodeToString(hmacBytes);
-			//return hmacBase64;
+		// 결과를 Base64로 인코딩
+		//String hmacBase64 = Base64.getEncoder().encodeToString(hmacBytes);
+		//return hmacBase64;
 
-			// 결과를 16진수로 인코딩
-			String hmacHex = CryptoUtil.byteToHexString(hmacBytes);
-			return hmacHex;
-
-		}catch (Exception ex){
-
-		}
-		return "";
+		// 결과를 16진수로 인코딩
+		String hmacHex = CryptoUtil.byteToHexString(hmacBytes);
+		return hmacHex;
 	}
 
 	/**

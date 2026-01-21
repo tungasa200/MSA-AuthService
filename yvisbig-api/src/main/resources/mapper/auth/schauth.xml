@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yjmedia.yvisbig.baseauth.module.batch.SchAuthRepository">
+  <select id="callPROC_STS_3_5" statementType="CALLABLE" resultType="String">
+    {call PROC_STS_3_5(#{stsTp})}
+  </select>
+
+  <select id="selectDeleteMemberSqs" resultType="java.lang.Long">
+    <![CDATA[
+      SELECT
+      mbr_sq
+      FROM kdmp_mbr_info
+      WHERE mbr_st = 'W'
+      AND exit_dt <= DATE_ADD(NOW(), INTERVAL -3 MONTH)
+      AND NOT mbr_nm = '---'
+      ]]>
+  </select>
+
+  <update id="updateMbrInfoData" parameterType="java.util.List">
+    UPDATE kdmp_mbr_info
+    SET
+    mbr_nm = '---',
+    mbr_mobile_phone = '-----------',
+    mbr_ci = mbr_id
+    WHERE mbr_sq IN
+    <foreach collection="list" item="deleteMemberSq" open="(" separator="," close=")">
+      #{deleteMemberSq}
+    </foreach>
+  </update>
+
+  <update id="updateMbrDetailData" parameterType="java.util.List">
+    UPDATE kdmp_mbr_detail
+    SET
+    mbr_email = '---',
+    mbr_drv_licnum = '---',
+    mbr_drv_insurnum = '---',
+    mbr_basic_address = '---',
+    mbr_detail_address = '---',
+    mbr_drv_insurnm = '---',
+    mbr_drv_insurkind = '---',
+    mbr_wdt_account = '---',
+    mbr_wdt_account_ownnm = '---',
+    mbr_vir_account = '---',
+    mbr_vir_account_ownnm = '---',
+    vir_bank_kind = '---',
+    wdt_bank_kind = '---',
+    mbr_toss_billingkey = '---',
+    mbr_insur_juminnum = '---'
+    WHERE mbr_sq IN
+    <foreach collection="list" item="deleteMemberSq" open="(" separator="," close=")">
+      #{deleteMemberSq}
+    </foreach>
+  </update>
+</mapper>
