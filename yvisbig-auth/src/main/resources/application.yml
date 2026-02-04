@@ -76,8 +76,13 @@ logging:
 jwt:
   header: Authorization
   system-secret: REMOVED_JWT_SECRET
-  token-validity-in-seconds: 86400  #하루
-  refresh-token-validity-in-seconds: 604800  # 7일
+  token-validity-in-seconds: 3600  # 1시간
+  refresh-token-validity-in-seconds: 2592000  # 30일
+
+# Service DB 연결 설정 (MH_USERS 조회용) - 로컬에서는 비활성화
+service:
+  datasource:
+    enabled: false
 
 spring-doc:
   packages-to-scan: com.yjmedia.yvisbig.baseauth
@@ -145,9 +150,17 @@ logging:
 jwt:
   header: Authorization
   system-secret: REMOVED_JWT_SECRET
-  token-validity-in-seconds: 86400
-  refresh-token-validity-in-seconds: 604800  # token-validity-in-seconds 기본 + 60분 ==> 클라이언트 테스트를 위한 259200
+  token-validity-in-seconds: 3600  # 1시간
+  refresh-token-validity-in-seconds: 2592000  # 30일
 
+# Service DB 연결 설정 (MH_USERS 조회용)
+service:
+  datasource:
+    enabled: true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/gobgnews?autoReconnect=true&useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+    username: ${SERVICE_DB_USERNAME:dev}
+    password: ${SERVICE_DB_PASSWORD:asdf1234}
 
 spring-doc:
   packages-to-scan: com.yjmedia.yvisbig.baseauth

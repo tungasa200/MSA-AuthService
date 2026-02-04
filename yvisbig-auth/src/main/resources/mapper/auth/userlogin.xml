@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yjmedia.yvisbig.baseauth.module.auth.UserLoginRepository">
+
+  <!-- 사용자 ID로 조회 -->
+  <select id="findByUserLogin" parameterType="string" resultType="ServiceUserDTO">
+    SELECT
+      USER_ID as userId,
+      USER_LOGIN as userLogin,
+      USER_NAME as userName,
+      USER_EMAIL as userEmail,
+      USER_PASSWORD as userPassword,
+      USER_OU as userOu,
+      USER_FLAGS as userFlags,
+      USER_LANGUAGE as userLanguage,
+      USER_LASTLOGIN as userLastlogin,
+      USER_CREATED as userCreated,
+      DATE_EXPIRED as dateExpired
+    FROM MH_USERS
+    WHERE USER_LOGIN = #{userLogin}
+  </select>
+
+  <!-- 사용자 ID 또는 이메일로 조회 -->
+  <select id="findByUserLoginOrEmail" parameterType="string" resultType="ServiceUserDTO">
+    SELECT
+      USER_ID as userId,
+      USER_LOGIN as userLogin,
+      USER_NAME as userName,
+      USER_EMAIL as userEmail,
+      USER_PASSWORD as userPassword,
+      USER_OU as userOu,
+      USER_FLAGS as userFlags,
+      USER_LANGUAGE as userLanguage,
+      USER_LASTLOGIN as userLastlogin,
+      USER_CREATED as userCreated,
+      DATE_EXPIRED as dateExpired
+    FROM MH_USERS
+    WHERE USER_LOGIN = #{username}
+       OR USER_EMAIL = #{username}
+  </select>
+
+</mapper>
