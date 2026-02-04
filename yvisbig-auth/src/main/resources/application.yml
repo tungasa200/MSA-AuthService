@@ -79,6 +79,13 @@ jwt:
   token-validity-in-seconds: 3600  # 1시간
   refresh-token-validity-in-seconds: 2592000  # 30일
 
+# 언론사 정보 설정
+media:
+  configs:
+    - media-id: YJMEDIA
+      media-key: REMOVED_MEDIA_KEY
+      media-secret: REMOVED_MEDIA_SECRET
+
 # Service DB 연결 설정 (MH_USERS 조회용) - 로컬에서는 비활성화
 service:
   datasource:

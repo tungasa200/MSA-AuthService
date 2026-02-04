@@ -1,5 +1,6 @@
 package com.yjmedia.yvisbig.baseauth.module.auth;
 
+import com.yjmedia.yvisbig.baseauth.config.MediaProperties;
 import com.yjmedia.yvisbig.baseauth.voProtocol.*;
 import com.yjmedia.yvisbig.bizcom.constants.RedisKeyConfig;
 import com.yjmedia.yvisbig.bizcom.dto.SvrMediaKeyDTO;
@@ -35,6 +36,8 @@ public class AuthCoreService {
 
   private final LogJsonMapper logJsonMapper;
 
+  private final MediaProperties mediaProperties;
+
   @Value("${jwt.system-secret}")
   private String systemSecret;
 
@@ -46,15 +49,12 @@ public class AuthCoreService {
 
     SvrGetTokenResVO svrGetTokenResVO = new SvrGetTokenResVO();
 
-    //1. 언론사 비밀키 Select
-    SvrMediaKeyDTO svrMediaKeyDTO = authRepository.getMediaKeyInfo(svrGetTokenReqVO.getMediaKey() );
-
+    //1. 언론사 비밀키 조회 (application.yml 우선, 없으면 DB 조회)
+    String mediaSecretKey = getMediaSecretKey(svrGetTokenReqVO.getMediaKey());
 
     try{
-      //2. 언론사 비밀키 복호화
-      String mediaSecretKey = CryptoUtil.decryptAES256(svrMediaKeyDTO.getMediaSecretKey(), systemSecret);
 
-      //3. 해쉬 검증
+      //2. 해쉬 검증
       String verifyHash = CryptoUtil.getHMAC(
               svrGetTokenReqVO.getMediaId()+svrGetTokenReqVO.getUserId()+svrGetTokenReqVO.getUserNm()+ svrGetTokenReqVO.getCallDate(),
               mediaSecretKey,
@@ -66,11 +66,11 @@ public class AuthCoreService {
         throw new ServerBizException(ErrorType.JWT_NOT_AUTH);
       }
 
-      //4. 토큰 생성
+      //3. 토큰 생성
       svrGetTokenResVO.setJwt(tokenProvider.createTokenWithString(svrGetTokenReqVO.getMediaId(),
               svrGetTokenReqVO.getUserId()));
 
-      //5. User 인증 정보 업데이트
+      //4. User 인증 정보 업데이트
       SvrUserDTO svrUserDTOExist = authRepository.selectSvrUserWithId(svrGetTokenReqVO.getMediaId(),svrGetTokenReqVO.getUserId());
 
       if( svrUserDTOExist == null){
@@ -114,15 +114,11 @@ public class AuthCoreService {
 
     SvrRefreshTokenResVO svrRefreshTokenResVO = new SvrRefreshTokenResVO();
 
-    //1. 언론사 비밀키 Select
-    SvrMediaKeyDTO svrMediaKeyDTO = authRepository.getMediaKeyInfo(svrRefreshTokenReqVO.getMediaKey() );
-
+    //1. 언론사 비밀키 조회 (application.yml 우선, 없으면 DB 조회)
+    String mediaSecretKey = getMediaSecretKey(svrRefreshTokenReqVO.getMediaKey());
 
     try{
-      //2. 언론사 비밀키 복호화
-      String mediaSecretKey = CryptoUtil.decryptAES256(svrMediaKeyDTO.getMediaSecretKey(), systemSecret);
-
-      //3. 해쉬 검증
+      //2. 해쉬 검증
       String verifyHash = CryptoUtil.getHMAC(
               svrRefreshTokenReqVO.getMediaId()+svrRefreshTokenReqVO.getUserId()+svrRefreshTokenReqVO.getUserNm()+ svrRefreshTokenReqVO.getCallDate(),
               mediaSecretKey,
@@ -165,6 +161,28 @@ public class AuthCoreService {
       throw new ServerBizException(ErrorType.SERVER_INTERNAL_EXCEPTION, e.getMessage());
     }
     return svrRefreshTokenResVO;
+  }
+
+  /**
+   * 언론사 비밀키 조회
+   * application.yml 설정 우선, 없으면 DB에서 조회
+   */
+  private String getMediaSecretKey(String mediaKey) {
+    // 1. application.yml에서 조회
+    return mediaProperties.findByMediaKey(mediaKey)
+            .map(MediaProperties.MediaConfig::getMediaSecret)
+            .orElseGet(() -> {
+              // 2. DB에서 조회
+              try {
+                SvrMediaKeyDTO svrMediaKeyDTO = authRepository.getMediaKeyInfo(mediaKey);
+                if (svrMediaKeyDTO != null) {
+                  return CryptoUtil.decryptAES256(svrMediaKeyDTO.getMediaSecretKey(), systemSecret);
+                }
+              } catch (Exception e) {
+                log.error("언론사 비밀키 DB 조회 실패: {}", e.getMessage());
+              }
+              throw new ServerBizException(ErrorType.JWT_NOT_AUTH, "언론사 키를 찾을 수 없습니다: " + mediaKey);
+            });
   }
 
 }
