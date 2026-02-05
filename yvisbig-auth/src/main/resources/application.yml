@@ -26,14 +26,13 @@ spring:
   config:
     activate:
       on-profile: local
-  # 기본 datasource
+  # 기본 datasource (auth 서버 자체 테이블용) - HikariCP 자동 설정
   datasource:
-    hikari:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://REMOVED_DB_HOST:30199/mediahub_srv?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-      username: mediahub
-      password: REMOVED_PASSWORD
-      maximum-pool-size: 5
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    jdbc-url: jdbc:mysql://REMOVED_DB_HOST:30199/mediahub_srv?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+    username: mediahub
+    password: REMOVED_PASSWORD
+    maximum-pool-size: 5
   # H2 콘솔 비활성화 (MySQL 사용)
   h2:
     console:

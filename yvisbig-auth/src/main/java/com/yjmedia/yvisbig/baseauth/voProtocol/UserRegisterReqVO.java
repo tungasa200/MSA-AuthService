@@ -18,6 +18,14 @@ public class UserRegisterReqVO {
     @NotBlank(message = "언론사 ID는 필수입니다.")
     private String mediaId;
 
+    @Schema(description = "언론사 Key", example = "REMOVED_MEDIA_KEY", required = true)
+    @NotBlank(message = "언론사 Key는 필수입니다.")
+    private String mediaKey;
+
+    @Schema(description = "언론사 Secret", example = "REMOVED_MEDIA_SECRET", required = true)
+    @NotBlank(message = "언론사 Secret은 필수입니다.")
+    private String mediaSecret;
+
     @Schema(description = "사용자 로그인 ID", example = "testuser", required = true)
     @NotBlank(message = "사용자 ID는 필수입니다.")
     @Size(min = 4, max = 50, message = "사용자 ID는 4~50자여야 합니다.")

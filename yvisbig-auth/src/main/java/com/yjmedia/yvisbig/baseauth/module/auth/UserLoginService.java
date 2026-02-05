@@ -1,12 +1,12 @@
 package com.yjmedia.yvisbig.baseauth.module.auth;
 
+import com.yjmedia.yvisbig.baseauth.config.MediaProperties;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserLoginReqVO;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserLoginResVO;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserRefreshReqVO;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserRegisterReqVO;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserRegisterResVO;
 import com.yjmedia.yvisbig.bizcom.dto.ServiceUserDTO;
-import com.yjmedia.yvisbig.bizcom.dto.SvrUserDTO;
 import com.yjmedia.yvisbig.bizcom.encoder.KisaSha256PasswordEncoder;
 import com.yjmedia.yvisbig.bizcom.exception.ErrorType;
 import com.yjmedia.yvisbig.bizcom.exception.ServerBizException;
@@ -27,22 +27,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserLoginService {
 
     private final UserLoginRepository userLoginRepository;
-    private final AuthRepository authRepository;
     private final TokenProvider tokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final KisaSha256PasswordEncoder kisaSha256PasswordEncoder;
+    private final MediaProperties mediaProperties;
 
     @Value("${jwt.token-validity-in-seconds:3600}")
     private long accessTokenValidityInSeconds;
 
     /**
      * 사용자 로그인 처리
-     * 1. 언론사 확인
-     * 2. 사용자 조회
-     * 3. 비밀번호 검증
-     * 4. Access Token 생성
-     * 5. Refresh Token 생성 및 Redis 저장
-     * 6. 사용자 정보 동기화 (svr_user)
+     * 1. 사용자 조회 (MH_USERS)
+     * 2. 비밀번호 검증
+     * 3. Access Token 생성
+     * 4. Refresh Token 생성 및 Redis 저장
      *
      * @param reqVO 로그인 요청 정보
      * @return 로그인 응답 (토큰 정보 포함)
@@ -74,9 +72,6 @@ public class UserLoginService {
         // 4. Refresh Token 생성 및 Redis 저장
         String refreshToken = refreshTokenService.createAndSaveRefreshToken(
                 mediaId, user.getUserLogin(), user.getUserName());
-
-        // 5. 인증서버 사용자 정보 동기화 (svr_user)
-        syncUserInfo(mediaId, user.getUserLogin(), user.getUserName());
 
         log.info("User login success: mediaId={}, userId={}", mediaId, user.getUserLogin());
 
@@ -168,10 +163,15 @@ public class UserLoginService {
     @Transactional
     public UserRegisterResVO register(UserRegisterReqVO reqVO) {
         String mediaId = reqVO.getMediaId();
+        String mediaKey = reqVO.getMediaKey();
+        String mediaSecret = reqVO.getMediaSecret();
         String userLogin = reqVO.getUserLogin();
         String userEmail = reqVO.getUserEmail();
 
         log.info("User registration attempt: mediaId={}, userLogin={}", mediaId, userLogin);
+
+        // 0. 언론사 키 검증
+        validateMediaCredentials(mediaId, mediaKey, mediaSecret);
 
         // 1. 사용자 ID 중복 체크
         if (userLoginRepository.checkUserLoginExists(userLogin) > 0) {
@@ -205,9 +205,6 @@ public class UserLoginService {
             log.error("Failed to insert user: userLogin={}", userLogin);
             throw new ServerBizException(ErrorType.SERVER_INTERNAL_EXCEPTION, "회원가입에 실패했습니다.");
         }
-
-        // 6. 인증서버 사용자 정보 동기화 (svr_user)
-        syncUserInfo(mediaId, userLogin, reqVO.getUserName());
 
         log.info("User registration success: mediaId={}, userLogin={}, userId={}", mediaId, userLogin, newUser.getUserId());
 
@@ -243,27 +240,30 @@ public class UserLoginService {
     }
 
     /**
-     * 인증서버 사용자 정보 동기화 (svr_user 테이블)
+     * 언론사 키 검증
+     * mediaId, mediaKey, mediaSecret이 application.yml 설정과 일치하는지 확인
+     *
+     * @param mediaId 언론사 ID
+     * @param mediaKey 언론사 Key
+     * @param mediaSecret 언론사 Secret
      */
-    private void syncUserInfo(String mediaId, String userId, String userNm) {
-        try {
-            SvrUserDTO existUser = authRepository.selectSvrUserWithId(mediaId, userId);
+    private void validateMediaCredentials(String mediaId, String mediaKey, String mediaSecret) {
+        MediaProperties.MediaConfig config = mediaProperties.findByMediaId(mediaId)
+                .orElseThrow(() -> {
+                    log.warn("Invalid media ID: mediaId={}", mediaId);
+                    return new ServerBizException(ErrorType.JWT_INVALID_MEDIA_CREDENTIALS, "유효하지 않은 언론사 ID입니다.");
+                });
 
-            if (existUser == null) {
-                SvrUserDTO newUser = new SvrUserDTO();
-                newUser.setMediaId(mediaId);
-                newUser.setUserId(userId);
-                newUser.setUserNm(userNm);
-                authRepository.insertSvrUser(newUser);
-                log.debug("New user synced to svr_user: mediaId={}, userId={}", mediaId, userId);
-            } else {
-                existUser.setUserNm(userNm);
-                authRepository.updateSvrUser(existUser);
-                log.debug("User info updated in svr_user: mediaId={}, userId={}", mediaId, userId);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to sync user info: mediaId={}, userId={}, error={}", mediaId, userId, e.getMessage());
-            // 사용자 동기화 실패는 로그인 실패로 처리하지 않음
+        if (!config.getMediaKey().equals(mediaKey)) {
+            log.warn("Invalid media key: mediaId={}, mediaKey={}", mediaId, mediaKey);
+            throw new ServerBizException(ErrorType.JWT_INVALID_MEDIA_CREDENTIALS, "유효하지 않은 언론사 Key입니다.");
         }
+
+        if (!config.getMediaSecret().equals(mediaSecret)) {
+            log.warn("Invalid media secret: mediaId={}", mediaId);
+            throw new ServerBizException(ErrorType.JWT_INVALID_MEDIA_CREDENTIALS, "유효하지 않은 언론사 Secret입니다.");
+        }
+
+        log.debug("Media credentials validated: mediaId={}", mediaId);
     }
 }
