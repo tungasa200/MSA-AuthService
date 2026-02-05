@@ -3,8 +3,6 @@ package com.yjmedia.yvisbig.baseauth.module.auth;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserLoginReqVO;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserLoginResVO;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserRefreshReqVO;
-import com.yjmedia.yvisbig.baseauth.voProtocol.UserRegisterReqVO;
-import com.yjmedia.yvisbig.baseauth.voProtocol.UserRegisterResVO;
 import com.yjmedia.yvisbig.bizcom.annotation.AcessScope;
 import com.yjmedia.yvisbig.bizcom.config.HttpHeaderDefaultType;
 import com.yjmedia.yvisbig.bizcom.enums.AccessScopeType;
@@ -21,15 +19,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 사용자 로그인 API 컨트롤러
- * ID/PW 기반 사용자 인증 및 JWT 토큰 관리
+ * 인증 API 컨트롤러
+ * 로그인, 로그아웃, 토큰 갱신
  */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/auth-svr")
-@Tag(name = "User Login", description = "사용자 로그인/로그아웃/토큰갱신 API")
-public class UserLoginApi {
+@Tag(name = "Auth", description = "인증 API (로그인/로그아웃/토큰갱신)")
+public class AuthApi {
 
     private final UserLoginService userLoginService;
     private final HttpHeaderDefaultType httpHeaderDefaultType;
@@ -42,7 +40,7 @@ public class UserLoginApi {
      * @return 토큰 정보 (accessToken, refreshToken, expiresIn 등)
      */
     @Operation(summary = "사용자 로그인", description = "ID/PW 기반 로그인 후 JWT 토큰 발급")
-    @PostMapping("/user/login")
+    @PostMapping("/auth/login")
     @AcessScope(scope = AccessScopeType.PUBLIC)
     public ResponseEntity<UserLoginResVO> login(@Valid @RequestBody UserLoginReqVO reqVO) {
         log.info("Login request: mediaId={}, userId={}", reqVO.getMediaId(), reqVO.getUserId());
@@ -62,7 +60,7 @@ public class UserLoginApi {
      * @return 새 토큰 정보
      */
     @Operation(summary = "토큰 갱신", description = "Refresh Token으로 새 Access Token 발급")
-    @PostMapping("/user/refresh")
+    @PostMapping("/auth/refresh")
     @AcessScope(scope = AccessScopeType.PUBLIC)
     public ResponseEntity<UserLoginResVO> refreshToken(
             @Valid @RequestBody UserRefreshReqVO reqVO,
@@ -91,7 +89,7 @@ public class UserLoginApi {
      * @return 성공 응답
      */
     @Operation(summary = "로그아웃", description = "Refresh Token 삭제 (Redis)")
-    @PostMapping("/user/logout")
+    @PostMapping("/auth/logout")
     @AcessScope(scope = AccessScopeType.PUBLIC)
     public ResponseEntity<Map<String, Object>> logout(
             @RequestHeader(value = "X-Media-Id", required = false) String mediaIdHeader,
@@ -110,68 +108,6 @@ public class UserLoginApi {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "로그아웃 되었습니다.");
-
-        return new ResponseEntity<>(response, httpHeaderDefaultType.getHeader(), HttpStatus.OK);
-    }
-
-    /**
-     * 회원가입
-     * 새 사용자 등록
-     *
-     * @param reqVO 회원가입 요청 정보
-     * @return 회원가입 결과
-     */
-    @Operation(summary = "회원가입", description = "새 사용자 등록")
-    @PostMapping("/user/register")
-    @AcessScope(scope = AccessScopeType.PUBLIC)
-    public ResponseEntity<UserRegisterResVO> register(@Valid @RequestBody UserRegisterReqVO reqVO) {
-        log.info("Register request: mediaId={}, userLogin={}", reqVO.getMediaId(), reqVO.getUserLogin());
-
-        UserRegisterResVO resVO = userLoginService.register(reqVO);
-
-        return new ResponseEntity<>(resVO, httpHeaderDefaultType.getHeader(), HttpStatus.CREATED);
-    }
-
-    /**
-     * 사용자 ID 중복 체크
-     *
-     * @param userLogin 사용자 로그인 ID
-     * @return 사용 가능 여부
-     */
-    @Operation(summary = "ID 중복 체크", description = "사용자 ID 사용 가능 여부 확인")
-    @GetMapping("/user/check-id")
-    @AcessScope(scope = AccessScopeType.PUBLIC)
-    public ResponseEntity<Map<String, Object>> checkUserId(@RequestParam("userLogin") String userLogin) {
-        log.info("Check user ID: userLogin={}", userLogin);
-
-        boolean available = userLoginService.checkUserLoginAvailable(userLogin);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("available", available);
-        response.put("userLogin", userLogin);
-        response.put("message", available ? "사용 가능한 아이디입니다." : "이미 사용 중인 아이디입니다.");
-
-        return new ResponseEntity<>(response, httpHeaderDefaultType.getHeader(), HttpStatus.OK);
-    }
-
-    /**
-     * 이메일 중복 체크
-     *
-     * @param userEmail 이메일
-     * @return 사용 가능 여부
-     */
-    @Operation(summary = "이메일 중복 체크", description = "이메일 사용 가능 여부 확인")
-    @GetMapping("/user/check-email")
-    @AcessScope(scope = AccessScopeType.PUBLIC)
-    public ResponseEntity<Map<String, Object>> checkUserEmail(@RequestParam("userEmail") String userEmail) {
-        log.info("Check user email: userEmail={}", userEmail);
-
-        boolean available = userLoginService.checkUserEmailAvailable(userEmail);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("available", available);
-        response.put("userEmail", userEmail);
-        response.put("message", available ? "사용 가능한 이메일입니다." : "이미 사용 중인 이메일입니다.");
 
         return new ResponseEntity<>(response, httpHeaderDefaultType.getHeader(), HttpStatus.OK);
     }
