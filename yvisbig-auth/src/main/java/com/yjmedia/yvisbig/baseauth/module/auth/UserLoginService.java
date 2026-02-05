@@ -3,8 +3,9 @@ package com.yjmedia.yvisbig.baseauth.module.auth;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserLoginReqVO;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserLoginResVO;
 import com.yjmedia.yvisbig.baseauth.voProtocol.UserRefreshReqVO;
+import com.yjmedia.yvisbig.baseauth.voProtocol.UserRegisterReqVO;
+import com.yjmedia.yvisbig.baseauth.voProtocol.UserRegisterResVO;
 import com.yjmedia.yvisbig.bizcom.dto.ServiceUserDTO;
-import com.yjmedia.yvisbig.bizcom.dto.SvrMediaKeyDTO;
 import com.yjmedia.yvisbig.bizcom.dto.SvrUserDTO;
 import com.yjmedia.yvisbig.bizcom.encoder.KisaSha256PasswordEncoder;
 import com.yjmedia.yvisbig.bizcom.exception.ErrorType;
@@ -152,6 +153,93 @@ public class UserLoginService {
     public void logout(String mediaId, String userId) {
         log.info("User logout: mediaId={}, userId={}", mediaId, userId);
         refreshTokenService.deleteRefreshToken(mediaId, userId);
+    }
+
+    /**
+     * 회원가입 처리
+     * 1. 사용자 ID 중복 체크
+     * 2. 이메일 중복 체크 (선택)
+     * 3. 비밀번호 암호화
+     * 4. 사용자 등록
+     *
+     * @param reqVO 회원가입 요청 정보
+     * @return 회원가입 응답
+     */
+    @Transactional
+    public UserRegisterResVO register(UserRegisterReqVO reqVO) {
+        String mediaId = reqVO.getMediaId();
+        String userLogin = reqVO.getUserLogin();
+        String userEmail = reqVO.getUserEmail();
+
+        log.info("User registration attempt: mediaId={}, userLogin={}", mediaId, userLogin);
+
+        // 1. 사용자 ID 중복 체크
+        if (userLoginRepository.checkUserLoginExists(userLogin) > 0) {
+            log.warn("User login already exists: userLogin={}", userLogin);
+            throw new ServerBizException(ErrorType.JWT_USER_ALREADY_EXISTS, "이미 사용 중인 아이디입니다.");
+        }
+
+        // 2. 이메일 중복 체크 (이메일이 있는 경우에만)
+        if (userEmail != null && !userEmail.isEmpty()) {
+            if (userLoginRepository.checkUserEmailExists(userEmail) > 0) {
+                log.warn("User email already exists: userEmail={}", userEmail);
+                throw new ServerBizException(ErrorType.JWT_USER_ALREADY_EXISTS, "이미 사용 중인 이메일입니다.");
+            }
+        }
+
+        // 3. 비밀번호 암호화 (KISA SHA256)
+        String encodedPassword = kisaSha256PasswordEncoder.encode(reqVO.getPassword());
+
+        // 4. 사용자 정보 생성
+        ServiceUserDTO newUser = new ServiceUserDTO();
+        newUser.setUserLogin(userLogin);
+        newUser.setUserName(reqVO.getUserName());
+        newUser.setUserEmail(userEmail);
+        newUser.setUserPassword(encodedPassword);
+        newUser.setUserOu(reqVO.getUserOu());
+        newUser.setUserLanguage(reqVO.getUserLanguage() != null ? reqVO.getUserLanguage() : "ko");
+
+        // 5. 사용자 등록
+        int result = userLoginRepository.insertUser(newUser);
+        if (result <= 0) {
+            log.error("Failed to insert user: userLogin={}", userLogin);
+            throw new ServerBizException(ErrorType.SERVER_INTERNAL_EXCEPTION, "회원가입에 실패했습니다.");
+        }
+
+        // 6. 인증서버 사용자 정보 동기화 (svr_user)
+        syncUserInfo(mediaId, userLogin, reqVO.getUserName());
+
+        log.info("User registration success: mediaId={}, userLogin={}, userId={}", mediaId, userLogin, newUser.getUserId());
+
+        return UserRegisterResVO.builder()
+                .success(true)
+                .message("회원가입이 완료되었습니다.")
+                .userId(newUser.getUserId())
+                .userLogin(userLogin)
+                .userName(reqVO.getUserName())
+                .mediaId(mediaId)
+                .build();
+    }
+
+    /**
+     * 사용자 ID 중복 체크
+     * @param userLogin 사용자 로그인 ID
+     * @return true: 사용 가능, false: 이미 존재
+     */
+    public boolean checkUserLoginAvailable(String userLogin) {
+        return userLoginRepository.checkUserLoginExists(userLogin) == 0;
+    }
+
+    /**
+     * 이메일 중복 체크
+     * @param userEmail 이메일
+     * @return true: 사용 가능, false: 이미 존재
+     */
+    public boolean checkUserEmailAvailable(String userEmail) {
+        if (userEmail == null || userEmail.isEmpty()) {
+            return true;
+        }
+        return userLoginRepository.checkUserEmailExists(userEmail) == 0;
     }
 
     /**

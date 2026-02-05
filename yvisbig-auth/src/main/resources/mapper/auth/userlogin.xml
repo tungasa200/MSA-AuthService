@@ -40,4 +40,45 @@
        OR USER_EMAIL = #{username}
   </select>
 
+  <!-- 사용자 ID 중복 체크 -->
+  <select id="checkUserLoginExists" parameterType="string" resultType="int">
+    SELECT COUNT(*)
+    FROM MH_USERS
+    WHERE USER_LOGIN = #{userLogin}
+  </select>
+
+  <!-- 이메일 중복 체크 -->
+  <select id="checkUserEmailExists" parameterType="string" resultType="int">
+    SELECT COUNT(*)
+    FROM MH_USERS
+    WHERE USER_EMAIL = #{userEmail}
+      AND USER_EMAIL IS NOT NULL
+      AND USER_EMAIL != ''
+  </select>
+
+  <!-- 사용자 등록 (회원가입) -->
+  <insert id="insertUser" parameterType="ServiceUserDTO" useGeneratedKeys="true" keyProperty="userId" keyColumn="USER_ID">
+    INSERT INTO MH_USERS (
+      USER_LOGIN,
+      USER_NAME,
+      USER_EMAIL,
+      USER_PASSWORD,
+      USER_OU,
+      USER_FLAGS,
+      USER_LANGUAGE,
+      USER_CREATED,
+      DATE_EXPIRED
+    ) VALUES (
+      #{userLogin},
+      #{userName},
+      #{userEmail},
+      #{userPassword},
+      #{userOu},
+      '0',
+      #{userLanguage, jdbcType=VARCHAR},
+      NOW(),
+      DATE_ADD(NOW(), INTERVAL 1 YEAR)
+    )
+  </insert>
+
 </mapper>

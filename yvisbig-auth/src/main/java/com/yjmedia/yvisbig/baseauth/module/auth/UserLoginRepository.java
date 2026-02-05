@@ -24,4 +24,25 @@ public interface UserLoginRepository {
      * @return 사용자 정보
      */
     ServiceUserDTO findByUserLoginOrEmail(@Param("username") String username);
+
+    /**
+     * 사용자 ID 중복 체크
+     * @param userLogin 사용자 로그인 ID
+     * @return 존재하면 1, 없으면 0
+     */
+    int checkUserLoginExists(@Param("userLogin") String userLogin);
+
+    /**
+     * 이메일 중복 체크
+     * @param userEmail 이메일
+     * @return 존재하면 1, 없으면 0
+     */
+    int checkUserEmailExists(@Param("userEmail") String userEmail);
+
+    /**
+     * 사용자 등록 (회원가입)
+     * @param user 사용자 정보
+     * @return 등록된 row 수
+     */
+    int insertUser(ServiceUserDTO user);
 }

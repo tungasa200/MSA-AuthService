@@ -26,6 +26,8 @@ public enum ErrorType {
       "JWT_TOKEN_REFRESH_DIFF"),
   JWT_TOKEN_REFRESH_TIMEOUT(22012, "Token Auto Refresh time out", "리프레쉬 토큰 만료되었거나, 잘못되었습니다.",
       "JWT_TOKEN_REFRESH_TIMEOUT"),
+  JWT_USER_ALREADY_EXISTS(22015, "User Already Exists", "이미 존재하는 사용자입니다.",
+      "USER_ALREADY_EXISTS"),
   LOGIN_DEVICEID_DIFF(22013, "device Id diff", "디바이스 아이디가 다릅니다.",
       "LOGIN_DEVICEID_DIFF"),
   LOGIN_CMDM_DIFF(22014, "cleint,driver check", "고객,기사 구분이 필요합니다.", "LOGIN_CMDM_DIFF"),
