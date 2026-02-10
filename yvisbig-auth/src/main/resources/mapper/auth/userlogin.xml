@@ -3,81 +3,84 @@
 
 <mapper namespace="com.yjmedia.yvisbig.baseauth.module.auth.UserLoginRepository">
 
-  <!-- 사용자 ID로 조회 -->
+  <!-- 사용자 ID로 조회 (MH_EXT_MEMBER 테이블 사용) -->
   <select id="findByUserLogin" parameterType="string" resultType="ServiceUserDTO">
     SELECT
-      USER_ID as userId,
-      USER_LOGIN as userLogin,
-      USER_NAME as userName,
-      USER_EMAIL as userEmail,
-      USER_PASSWORD as userPassword,
-      USER_OU as userOu,
-      USER_FLAGS as userFlags,
-      USER_LANGUAGE as userLanguage,
-      USER_LASTLOGIN as userLastlogin,
-      USER_CREATED as userCreated,
-      DATE_EXPIRED as dateExpired
-    FROM MH_USERS
-    WHERE USER_LOGIN = #{userLogin}
+      MEMBER_SEQ as userId,
+      MEMBER_ID as userLogin,
+      MEMBER_NAME as userName,
+      MEMBER_EMAIL as userEmail,
+      MEMBER_PASSWORD as userPassword,
+      '' as userOu,
+      '0' as userFlags,
+      'ko' as userLanguage,
+      MEMBER_RECENT_LOGIN as userLastlogin,
+      JOIN_DATETIME as userCreated,
+      NULL as dateExpired
+    FROM MH_EXT_MEMBER
+    WHERE MEMBER_ID = #{userLogin}
+      AND ACCOUNT_STATUS = 'A'
   </select>
 
-  <!-- 사용자 ID 또는 이메일로 조회 -->
+  <!-- 사용자 ID 또는 이메일로 조회 (MH_EXT_MEMBER 테이블 사용) -->
   <select id="findByUserLoginOrEmail" parameterType="string" resultType="ServiceUserDTO">
     SELECT
-      USER_ID as userId,
-      USER_LOGIN as userLogin,
-      USER_NAME as userName,
-      USER_EMAIL as userEmail,
-      USER_PASSWORD as userPassword,
-      USER_OU as userOu,
-      USER_FLAGS as userFlags,
-      USER_LANGUAGE as userLanguage,
-      USER_LASTLOGIN as userLastlogin,
-      USER_CREATED as userCreated,
-      DATE_EXPIRED as dateExpired
-    FROM MH_USERS
-    WHERE USER_LOGIN = #{username}
-       OR USER_EMAIL = #{username}
+      MEMBER_SEQ as userId,
+      MEMBER_ID as userLogin,
+      MEMBER_NAME as userName,
+      MEMBER_EMAIL as userEmail,
+      MEMBER_PASSWORD as userPassword,
+      '' as userOu,
+      '0' as userFlags,
+      'ko' as userLanguage,
+      MEMBER_RECENT_LOGIN as userLastlogin,
+      JOIN_DATETIME as userCreated,
+      NULL as dateExpired
+    FROM MH_EXT_MEMBER
+    WHERE (MEMBER_ID = #{username} OR MEMBER_EMAIL = #{username})
+      AND ACCOUNT_STATUS = 'A'
   </select>
 
-  <!-- 사용자 ID 중복 체크 -->
+  <!-- 사용자 ID 중복 체크 (MH_EXT_MEMBER 테이블 사용) -->
   <select id="checkUserLoginExists" parameterType="string" resultType="int">
     SELECT COUNT(*)
-    FROM MH_USERS
-    WHERE USER_LOGIN = #{userLogin}
+    FROM MH_EXT_MEMBER
+    WHERE MEMBER_ID = #{userLogin}
   </select>
 
-  <!-- 이메일 중복 체크 -->
+  <!-- 이메일 중복 체크 (MH_EXT_MEMBER 테이블 사용) -->
   <select id="checkUserEmailExists" parameterType="string" resultType="int">
     SELECT COUNT(*)
-    FROM MH_USERS
-    WHERE USER_EMAIL = #{userEmail}
-      AND USER_EMAIL IS NOT NULL
-      AND USER_EMAIL != ''
+    FROM MH_EXT_MEMBER
+    WHERE MEMBER_EMAIL = #{userEmail}
+      AND MEMBER_EMAIL IS NOT NULL
+      AND MEMBER_EMAIL != ''
   </select>
 
-  <!-- 사용자 등록 (회원가입) -->
-  <insert id="insertUser" parameterType="ServiceUserDTO" useGeneratedKeys="true" keyProperty="userId" keyColumn="USER_ID">
-    INSERT INTO MH_USERS (
-      USER_LOGIN,
-      USER_NAME,
-      USER_EMAIL,
-      USER_PASSWORD,
-      USER_OU,
-      USER_FLAGS,
-      USER_LANGUAGE,
-      USER_CREATED,
-      DATE_EXPIRED
+  <!-- 사용자 등록 (회원가입) - MH_EXT_MEMBER 테이블 사용 -->
+  <insert id="insertUser" parameterType="ServiceUserDTO" useGeneratedKeys="true" keyProperty="userId" keyColumn="MEMBER_SEQ">
+    INSERT INTO MH_EXT_MEMBER (
+      MEMBER_ID,
+      MEMBER_PASSWORD,
+      MEMBER_NICKNAME,
+      MEMBER_NAME,
+      MEMBER_EMAIL,
+      JOIN_DATETIME,
+      MEMBER_RECENT_LOGIN,
+      ACCOUNT_STATUS,
+      MEMBER_PASSWORD_STATUS,
+      MEMBER_GRADE
     ) VALUES (
       #{userLogin},
+      #{userPassword},
+      #{userName},
       #{userName},
       #{userEmail},
-      #{userPassword},
-      #{userOu},
-      '0',
-      #{userLanguage, jdbcType=VARCHAR},
       NOW(),
-      DATE_ADD(NOW(), INTERVAL 1 YEAR)
+      NOW(),
+      'A',
+      '0',
+      'F'
     )
   </insert>
 

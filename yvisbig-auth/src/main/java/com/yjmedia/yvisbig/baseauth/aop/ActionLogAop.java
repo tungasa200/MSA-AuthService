@@ -17,14 +17,22 @@ public class ActionLogAop {
     @Before("execution(* com.yjmedia.yvisbig.baseauth.module..*Api.*(..))")
     public void doLoggingBefore(JoinPoint joinPoint) {
         // 메서드 정보 받아오기
-        //Method method = getMethod(joinPoint);
-        //log.info("======= method name = {} =======", method.getName());
+        // Method method = getMethod(joinPoint);
+        // log.info("======= method name = {} =======", method.getName());
 
         // 파라미터 받아오기
         Object[] args = joinPoint.getArgs();
-        if (args.length <= 0) log.info("no parameter");
+        if (args.length <= 0)
+            log.info("no parameter");
+        // for (Object arg : args) {
+        // log.info("parameter type = {}, value = {}", arg.getClass().getSimpleName(),
+        // arg);
+        // }
         for (Object arg : args) {
-            log.info("parameter type = {}, value = {}", arg.getClass().getSimpleName(), arg);
+            String typeName = (arg != null) ? arg.getClass().getSimpleName() : "NULL_TYPE";
+            Object value = (arg != null) ? arg : "null_value";
+
+            log.info("parameter type = {}, value = {}", typeName, value);
         }
     }
 
@@ -32,6 +40,5 @@ public class ActionLogAop {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         return signature.getMethod();
     }
-
 
 }
