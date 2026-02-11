@@ -45,4 +45,15 @@ public interface UserLoginRepository {
      * @return 등록된 row 수
      */
     int insertUser(ServiceUserDTO user);
+
+    /**
+     * 로그인 성공 시 최근 로그인 시간/IP 업데이트
+     */
+    int updateLoginInfo(@Param("memberId") String memberId,
+                        @Param("lastLoginIp") String lastLoginIp);
+
+    /**
+     * 첫 로그인 시간 기록 (NULL인 경우만 업데이트)
+     */
+    int updateFirstLogin(@Param("memberId") String memberId);
 }

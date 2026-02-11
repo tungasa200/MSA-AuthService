@@ -71,6 +71,11 @@ public class JwtFilterCheckException extends OncePerRequestFilter {
               */
             if(!requestURI.contains("Login") &&
                     !requestURI.contains("auth-svr/refreshToken") &&
+                    !requestURI.contains("auth/login") &&
+                    !requestURI.contains("auth/refresh") &&
+                    !requestURI.contains("auth/logout") &&
+                    !requestURI.contains("user/register") &&
+                    !requestURI.contains("user/check-") &&
                     !requestURI.contains("/v1/biztotal/cm/listTerm") &&
                     !requestURI.contains("/v1/biztotal/cm/getTerm") &&
                     !requestURI.contains("/v1/biztotal/dm/listTerm") &&

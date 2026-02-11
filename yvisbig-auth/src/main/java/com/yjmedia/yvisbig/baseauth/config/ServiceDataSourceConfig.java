@@ -47,7 +47,7 @@ public class ServiceDataSourceConfig {
         SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
         sqlSessionFactoryBean.setDataSource(dataSource);
         sqlSessionFactoryBean.setMapperLocations(
-                applicationContext.getResources("classpath:/mapper/auth/userlogin.xml"));
+                applicationContext.getResources("classpath:/mapper/auth/*.xml"));
         sqlSessionFactoryBean.setConfigLocation(
                 applicationContext.getResource("classpath:/mybatis/mybatis-config.xml"));
         sqlSessionFactoryBean.setVfs(SpringBootVFS.class);

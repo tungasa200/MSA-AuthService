@@ -106,6 +106,8 @@ public class SecurityConfig {
           .mvcMatchers("/v1/auth-svr/user/login").permitAll()
           .mvcMatchers("/v1/auth-svr/user/refresh").permitAll()
           .mvcMatchers("/v1/auth-svr/user/logout").permitAll()
+          .mvcMatchers("/v1/auth-svr/auth/**").permitAll()
+          .mvcMatchers("/v1/auth-svr/user/**").permitAll()
           .mvcMatchers("/v1/auth-svr/health").permitAll()
           .mvcMatchers("/v1/auth-svr/refreshToken").permitAll()
           .mvcMatchers("/v1/biztotal/webview/portone/getAuthInfo").permitAll()

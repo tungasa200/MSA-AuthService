@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,8 +43,14 @@ public class AuthApi {
     @Operation(summary = "사용자 로그인", description = "ID/PW 기반 로그인 후 JWT 토큰 발급")
     @PostMapping("/auth/login")
     @AcessScope(scope = AccessScopeType.PUBLIC)
-    public ResponseEntity<UserLoginResVO> login(@Valid @RequestBody UserLoginReqVO reqVO) {
+    public ResponseEntity<UserLoginResVO> login(@Valid @RequestBody UserLoginReqVO reqVO,
+                                                 HttpServletRequest request) {
         log.info("Login request: mediaId={}, userId={}", reqVO.getMediaId(), reqVO.getUserId());
+
+        // 클라이언트 IP 설정 (프록시 환경 고려)
+        if (reqVO.getLastLoginIp() == null || reqVO.getLastLoginIp().isEmpty()) {
+            reqVO.setLastLoginIp(getClientIp(request));
+        }
 
         UserLoginResVO resVO = userLoginService.login(reqVO);
 
@@ -63,15 +70,10 @@ public class AuthApi {
     @PostMapping("/auth/refresh")
     @AcessScope(scope = AccessScopeType.PUBLIC)
     public ResponseEntity<UserLoginResVO> refreshToken(
-            @Valid @RequestBody UserRefreshReqVO reqVO,
-            @RequestHeader(value = "X-Media-Id", required = false) String mediaIdHeader,
-            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
-            @RequestParam(value = "mediaId", required = false) String mediaIdParam,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
+            @Valid @RequestBody UserRefreshReqVO reqVO) {
 
-        // 헤더 우선, 없으면 파라미터 사용
-        String mediaId = mediaIdHeader != null ? mediaIdHeader : mediaIdParam;
-        String userId = userIdHeader != null ? userIdHeader : userIdParam;
+        String mediaId = reqVO.getMediaId();
+        String userId = reqVO.getUserId();
 
         log.info("Token refresh request: mediaId={}, userId={}", mediaId, userId);
 
@@ -110,5 +112,20 @@ public class AuthApi {
         response.put("message", "로그아웃 되었습니다.");
 
         return new ResponseEntity<>(response, httpHeaderDefaultType.getHeader(), HttpStatus.OK);
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // X-Forwarded-For에 여러 IP가 있는 경우 첫 번째 사용
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 }

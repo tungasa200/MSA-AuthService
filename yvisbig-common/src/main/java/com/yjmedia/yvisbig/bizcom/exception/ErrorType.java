@@ -34,6 +34,13 @@ public enum ErrorType {
       "LOGIN_DEVICEID_DIFF"),
   LOGIN_CMDM_DIFF(22014, "cleint,driver check", "고객,기사 구분이 필요합니다.", "LOGIN_CMDM_DIFF"),
 
+  // 22020~ SNS OAuth2 관련 에러
+  JWT_SNS_PROVIDER_NOT_SUPPORTED(22020, "SNS Provider Not Supported", "지원하지 않는 SNS 프로바이더입니다.", "SNS_PROVIDER_NOT_SUPPORTED"),
+  JWT_SNS_AUTH_FAILED(22021, "SNS Auth Failed", "SNS 인증에 실패했습니다.", "SNS_AUTH_FAILED"),
+  JWT_SNS_USER_BLOCKED(22022, "SNS User Blocked", "관리자에 의해 차단된 계정입니다.", "SNS_USER_BLOCKED"),
+  JWT_SNS_INVALID_STATE(22023, "Invalid OAuth State", "유효하지 않은 OAuth 상태값입니다.", "SNS_INVALID_STATE"),
+  JWT_SNS_CONSENT_REQUIRED(22024, "SNS Consent Required", "필수 동의 항목이 누락되었습니다.", "SNS_CONSENT_REQUIRED"),
+
   // 23000~ 통합 오류  코드
   IO_EXCEPTION(21009, "IO exception", " IOException. 오류", "IO_EXCEPTION"),
   REQUEST_PARAM_NULL(21010, "Request Param Null", "파라미터 정보가 없습니다.", "REQUEST_PARAM_NULL"),

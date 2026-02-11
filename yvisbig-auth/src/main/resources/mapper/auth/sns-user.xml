@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yjmedia.yvisbig.baseauth.module.auth.SnsUserRepository">
+
+    <!-- SNS 사용자 조회 (memberId + loginType) -->
+    <select id="findSnsUser" resultType="com.yjmedia.yvisbig.baseauth.voProtocol.SnsUserDTO">
+        /* SnsUserRepository.findSnsUser */
+        SELECT
+            MEMBER_SEQ      AS memberSeq,
+            MEMBER_ID       AS memberId,
+            SNS_LOGIN_TYPE  AS snsLoginType,
+            SNS_ACCESS_TOKEN AS snsAccessToken,
+            MEMBER_EMAIL    AS email,
+            MEMBER_NAME     AS name,
+            MEMBER_NICKNAME AS nickname,
+            ACCOUNT_STATUS  AS accountStatus,
+            MEMBER_GRADE    AS memberGrade,
+            MEDIA_SEQ       AS mediaSeq
+        FROM MH_EXT_MEMBER
+        WHERE MEMBER_ID = #{memberId}
+          AND SNS_LOGIN_TYPE = #{loginType}
+    </select>
+
+    <!-- SNS 사용자 생성 -->
+    <insert id="insertSnsUser" parameterType="com.yjmedia.yvisbig.baseauth.voProtocol.SnsUserDTO"
+            useGeneratedKeys="true" keyProperty="memberSeq" keyColumn="MEMBER_SEQ">
+        /* SnsUserRepository.insertSnsUser */
+        INSERT INTO MH_EXT_MEMBER (
+            MEMBER_ID
+            , MEDIA_SEQ
+            <if test="name != null and name != ''">
+                , MEMBER_NAME
+                , MEMBER_NICKNAME
+            </if>
+            <if test="email != null and email != ''">
+                , MEMBER_EMAIL
+            </if>
+            , JOIN_DATETIME
+            , ACCOUNT_STATUS
+            , SNS_LOGIN_TYPE
+            , MEMBER_GRADE
+            , MEMBER_FIRST_LOGIN
+            , WRITER_DATE
+            <if test="snsAccessToken != null and snsAccessToken != ''">
+                , SNS_ACCESS_TOKEN
+            </if>
+            <if test="socialProfileImagePath != null and socialProfileImagePath != ''">
+                , SOCIAL_PROFILE_IMAGE_PATH
+            </if>
+            <if test="socialThumbnailImagePath != null and socialThumbnailImagePath != ''">
+                , SOCIAL_THUMBNAIL_IMAGE_PATH
+            </if>
+            <if test="socialGender != null and socialGender != ''">
+                , SOCIAL_GENDER
+            </if>
+            <if test="socialApproxAge != null and socialApproxAge != ''">
+                , SOCIAL_APPROX_AGE
+            </if>
+            <if test="socialApproxBirthday != null and socialApproxBirthday != ''">
+                , SOCIAL_APPROX_BIRTHDAY
+            </if>
+            <if test="socialApproxBirthyear != null and socialApproxBirthyear != ''">
+                , SOCIAL_APPROX_BIRTHYEAR
+            </if>
+        ) VALUES (
+            #{memberId}
+            , #{mediaSeq}
+            <if test="name != null and name != ''">
+                , #{name}
+                , #{name}
+            </if>
+            <if test="email != null and email != ''">
+                , #{email}
+            </if>
+            , NOW()
+            , 'A'
+            , #{snsLoginType}
+            , 'S'
+            , NOW()
+            , NOW()
+            <if test="snsAccessToken != null and snsAccessToken != ''">
+                , #{snsAccessToken}
+            </if>
+            <if test="socialProfileImagePath != null and socialProfileImagePath != ''">
+                , #{socialProfileImagePath}
+            </if>
+            <if test="socialThumbnailImagePath != null and socialThumbnailImagePath != ''">
+                , #{socialThumbnailImagePath}
+            </if>
+            <if test="socialGender != null and socialGender != ''">
+                , #{socialGender}
+            </if>
+            <if test="socialApproxAge != null and socialApproxAge != ''">
+                , #{socialApproxAge}
+            </if>
+            <if test="socialApproxBirthday != null and socialApproxBirthday != ''">
+                , #{socialApproxBirthday}
+            </if>
+            <if test="socialApproxBirthyear != null and socialApproxBirthyear != ''">
+                , #{socialApproxBirthyear}
+            </if>
+        )
+    </insert>
+
+</mapper>

@@ -15,4 +15,9 @@ public class UserRefreshReqVO extends RequestHeaderVO {
 
     @NotBlank(message = "Refresh Token은 필수입니다")
     private String refreshToken;
+
+    private String mediaId;
+    
+    @NotBlank(message = "User ID는 필수입니다")
+    private String userId;
 }

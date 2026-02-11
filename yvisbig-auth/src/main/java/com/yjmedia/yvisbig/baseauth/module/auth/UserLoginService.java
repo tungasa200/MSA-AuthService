@@ -51,6 +51,11 @@ public class UserLoginService {
         String userId = reqVO.getUserId();
         String password = reqVO.getPassword();
 
+        // mediaId가 없으면 기본 mediaId 사용
+        if (mediaId == null || mediaId.isEmpty()) {
+            mediaId = getDefaultMediaId();
+        }
+
         log.info("User login attempt: mediaId={}, userId={}", mediaId, userId);
 
         // 1. 사용자 조회 (MH_USERS 테이블)
@@ -72,6 +77,10 @@ public class UserLoginService {
         // 4. Refresh Token 생성 및 Redis 저장
         String refreshToken = refreshTokenService.createAndSaveRefreshToken(
                 mediaId, user.getUserLogin(), user.getUserName());
+
+        // 5. 로그인 정보 업데이트 (최근 로그인 시간, 첫 로그인 기록)
+        userLoginRepository.updateLoginInfo(user.getUserLogin(), reqVO.getLastLoginIp());
+        userLoginRepository.updateFirstLogin(user.getUserLogin());
 
         log.info("User login success: mediaId={}, userId={}", mediaId, user.getUserLogin());
 
@@ -100,6 +109,11 @@ public class UserLoginService {
     @Transactional
     public UserLoginResVO refreshToken(UserRefreshReqVO reqVO, String mediaId, String userId) {
         String refreshToken = reqVO.getRefreshToken();
+        
+        // mediaId가 없으면 기본 mediaId 사용
+        if (mediaId == null || mediaId.isEmpty()) {
+            mediaId = getDefaultMediaId();
+        }
 
         log.info("Token refresh attempt: mediaId={}, userId={}", mediaId, userId);
 
@@ -146,6 +160,10 @@ public class UserLoginService {
      * @param userId 사용자 ID
      */
     public void logout(String mediaId, String userId) {
+        // mediaId가 없으면 기본 mediaId 사용
+        if (mediaId == null || mediaId.isEmpty()) {
+            mediaId = getDefaultMediaId();
+        }
         log.info("User logout: mediaId={}, userId={}", mediaId, userId);
         refreshTokenService.deleteRefreshToken(mediaId, userId);
     }
@@ -168,9 +186,17 @@ public class UserLoginService {
         String userLogin = reqVO.getUserLogin();
         String userEmail = reqVO.getUserEmail();
 
+        // mediaId가 없으면 기본 mediaId 사용
+        if (mediaId == null || mediaId.isEmpty()) {
+            mediaId = getDefaultMediaId();
+        }
+
         log.info("User registration attempt: mediaId={}, userLogin={}", mediaId, userLogin);
 
-        // 0. 언론사 키 검증
+        // 0. 언론사 키 검증 (mediaKey, mediaSecret이 있을 때만)
+        if (mediaKey != null && !mediaKey.isEmpty() && mediaSecret != null && !mediaSecret.isEmpty()) {
+            validateMediaCredentials(mediaId, mediaKey, mediaSecret);
+        }
         validateMediaCredentials(mediaId, mediaKey, mediaSecret);
 
         // 1. 사용자 ID 중복 체크
@@ -237,6 +263,17 @@ public class UserLoginService {
             return true;
         }
         return userLoginRepository.checkUserEmailExists(userEmail) == 0;
+    }
+
+    /**
+     * 기본 mediaId 조회
+     * MediaProperties의 첫 번째 설정에서 mediaId를 가져옴
+     */
+    private String getDefaultMediaId() {
+        if (!mediaProperties.getConfigs().isEmpty()) {
+            return mediaProperties.getConfigs().get(0).getMediaId();
+        }
+        return "DEFAULT";
     }
 
     /**

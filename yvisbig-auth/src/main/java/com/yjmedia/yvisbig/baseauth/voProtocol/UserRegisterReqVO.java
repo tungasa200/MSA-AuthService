@@ -14,16 +14,13 @@ import javax.validation.constraints.Size;
 @Schema(description = "회원가입 요청")
 public class UserRegisterReqVO {
 
-    @Schema(description = "언론사 ID", example = "YJMEDIA", required = true)
-    @NotBlank(message = "언론사 ID는 필수입니다.")
+    @Schema(description = "언론사 ID", example = "YJMEDIA")
     private String mediaId;
 
-    @Schema(description = "언론사 Key", example = "REMOVED_MEDIA_KEY", required = true)
-    @NotBlank(message = "언론사 Key는 필수입니다.")
+    @Schema(description = "언론사 Key", example = "REMOVED_MEDIA_KEY")
     private String mediaKey;
 
-    @Schema(description = "언론사 Secret", example = "REMOVED_MEDIA_SECRET", required = true)
-    @NotBlank(message = "언론사 Secret은 필수입니다.")
+    @Schema(description = "언론사 Secret", example = "REMOVED_MEDIA_SECRET")
     private String mediaSecret;
 
     @Schema(description = "사용자 로그인 ID", example = "testuser", required = true)
