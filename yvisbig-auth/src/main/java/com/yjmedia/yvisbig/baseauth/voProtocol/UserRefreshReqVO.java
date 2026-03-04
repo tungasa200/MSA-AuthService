@@ -13,8 +13,7 @@ import javax.validation.constraints.NotBlank;
 @ToString(callSuper = true)
 public class UserRefreshReqVO extends RequestHeaderVO {
 
-    @NotBlank(message = "Refresh Token은 필수입니다")
-    private String refreshToken;
+    private String refreshToken; // 쿠키에서 우선 읽음, body는 하위호환용
 
     private String mediaId;
     

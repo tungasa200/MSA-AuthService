@@ -10,11 +10,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,8 +34,19 @@ import java.util.Map;
 @Tag(name = "Auth", description = "인증 API (로그인/로그아웃/토큰갱신)")
 public class AuthApi {
 
+    private static final String REFRESH_TOKEN_COOKIE = "msa_refresh_token";
+
     private final UserLoginService userLoginService;
     private final HttpHeaderDefaultType httpHeaderDefaultType;
+
+    @Value("${jwt.refresh-token-validity-in-seconds:2592000}")
+    private long refreshTokenValidityInSeconds;
+
+    @Value("${app.cookie.domain:}")
+    private String cookieDomain;
+
+    @Value("${app.cookie.secure:true}")
+    private boolean cookieSecure;
 
     /**
      * 사용자 로그인
@@ -44,7 +59,8 @@ public class AuthApi {
     @PostMapping("/auth/login")
     @AcessScope(scope = AccessScopeType.PUBLIC)
     public ResponseEntity<UserLoginResVO> login(@Valid @RequestBody UserLoginReqVO reqVO,
-                                                 HttpServletRequest request) {
+                                                 HttpServletRequest request,
+                                                 HttpServletResponse response) {
         log.info("Login request: mediaId={}, userId={}", reqVO.getMediaId(), reqVO.getUserId());
 
         // 클라이언트 IP 설정 (프록시 환경 고려)
@@ -53,6 +69,10 @@ public class AuthApi {
         }
 
         UserLoginResVO resVO = userLoginService.login(reqVO);
+
+        // Refresh Token을 httpOnly 쿠키로 설정 (서브도메인 공유)
+        addRefreshTokenCookie(response, resVO.getRefreshToken());
+        resVO.setRefreshToken(null); // JSON 응답에서 제거
 
         return new ResponseEntity<>(resVO, httpHeaderDefaultType.getHeader(), HttpStatus.OK);
     }
@@ -70,7 +90,13 @@ public class AuthApi {
     @PostMapping("/auth/refresh")
     @AcessScope(scope = AccessScopeType.PUBLIC)
     public ResponseEntity<UserLoginResVO> refreshToken(
-            @Valid @RequestBody UserRefreshReqVO reqVO) {
+            @Valid @RequestBody UserRefreshReqVO reqVO,
+            @CookieValue(name = "msa_refresh_token", required = false) String cookieRefreshToken,
+            HttpServletResponse response) {
+
+        // 쿠키 우선, 없으면 body (하위호환)
+        String refreshToken = cookieRefreshToken != null ? cookieRefreshToken : reqVO.getRefreshToken();
+        reqVO.setRefreshToken(refreshToken);
 
         String mediaId = reqVO.getMediaId();
         String userId = reqVO.getUserId();
@@ -78,6 +104,10 @@ public class AuthApi {
         log.info("Token refresh request: mediaId={}, userId={}", mediaId, userId);
 
         UserLoginResVO resVO = userLoginService.refreshToken(reqVO, mediaId, userId);
+
+        // 새 Refresh Token 쿠키 설정 (토큰 로테이션)
+        addRefreshTokenCookie(response, resVO.getRefreshToken());
+        resVO.setRefreshToken(null);
 
         return new ResponseEntity<>(resVO, httpHeaderDefaultType.getHeader(), HttpStatus.OK);
     }
@@ -97,7 +127,8 @@ public class AuthApi {
             @RequestHeader(value = "X-Media-Id", required = false) String mediaIdHeader,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
             @RequestParam(value = "mediaId", required = false) String mediaIdParam,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
+            @RequestParam(value = "userId", required = false) String userIdParam,
+            HttpServletResponse httpResponse) {
 
         // 헤더 우선, 없으면 파라미터 사용
         String mediaId = mediaIdHeader != null ? mediaIdHeader : mediaIdParam;
@@ -107,11 +138,46 @@ public class AuthApi {
 
         userLoginService.logout(mediaId, userId);
 
+        // Refresh Token 쿠키 삭제
+        clearRefreshTokenCookie(httpResponse);
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "로그아웃 되었습니다.");
 
         return new ResponseEntity<>(response, httpHeaderDefaultType.getHeader(), HttpStatus.OK);
+    }
+
+    /**
+     * Refresh Token httpOnly 쿠키 설정
+     */
+    private void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(REFRESH_TOKEN_COOKIE, refreshToken)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .maxAge(refreshTokenValidityInSeconds)
+                .sameSite("Lax");
+        if (cookieDomain != null && !cookieDomain.isEmpty()) {
+            builder.domain(cookieDomain);
+        }
+        response.addHeader(HttpHeaders.SET_COOKIE, builder.build().toString());
+    }
+
+    /**
+     * Refresh Token 쿠키 삭제
+     */
+    private void clearRefreshTokenCookie(HttpServletResponse response) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax");
+        if (cookieDomain != null && !cookieDomain.isEmpty()) {
+            builder.domain(cookieDomain);
+        }
+        response.addHeader(HttpHeaders.SET_COOKIE, builder.build().toString());
     }
 
     private String getClientIp(HttpServletRequest request) {

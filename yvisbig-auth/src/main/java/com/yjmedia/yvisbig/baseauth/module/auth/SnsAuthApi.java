@@ -8,6 +8,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +30,19 @@ import java.nio.charset.StandardCharsets;
 @Tag(name = "SNS Auth", description = "SNS OAuth2 인증 API (Kakao/Naver/Google/Facebook)")
 public class SnsAuthApi {
 
+    private static final String REFRESH_TOKEN_COOKIE = "msa_refresh_token";
+    private static final String REFRESH_TOKEN_COOKIE_PATH = "/";
+
     private final SnsLoginService snsLoginService;
+
+    @Value("${jwt.refresh-token-validity-in-seconds:2592000}")
+    private long refreshTokenValidityInSeconds;
+
+    @Value("${app.cookie.domain:}")
+    private String cookieDomain;
+
+    @Value("${app.cookie.secure:true}")
+    private boolean cookieSecure;
 
     /**
      * SNS OAuth2 인가 요청
@@ -95,11 +110,13 @@ public class SnsAuthApi {
             UserLoginResVO loginRes = result.getLoginRes();
             String redirectUri = result.getRedirectUri();
 
-            // JWT 토큰을 URL 파라미터로 전달하며 서비스로 리다이렉트
+            // Refresh Token을 httpOnly 쿠키로 설정 (URL 파라미터에서 제거)
+            addRefreshTokenCookie(response, loginRes.getRefreshToken());
+
+            // Access Token 등 나머지 정보만 URL 파라미터로 전달
             StringBuilder redirectUrl = new StringBuilder(redirectUri);
             redirectUrl.append(redirectUri.contains("?") ? "&" : "?");
             redirectUrl.append("accessToken=").append(encode(loginRes.getAccessToken()));
-            redirectUrl.append("&refreshToken=").append(encode(loginRes.getRefreshToken()));
             redirectUrl.append("&tokenType=").append(encode(loginRes.getTokenType()));
             redirectUrl.append("&expiresIn=").append(loginRes.getExpiresIn());
             redirectUrl.append("&userId=").append(encode(loginRes.getUserId()));
@@ -115,6 +132,19 @@ public class SnsAuthApi {
             response.sendRedirect(defaultRedirect + "?error=" + encode("sns_auth_failed")
                     + "&message=" + encode(e.getMessage()));
         }
+    }
+
+    private void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(REFRESH_TOKEN_COOKIE, refreshToken)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path(REFRESH_TOKEN_COOKIE_PATH)
+                .maxAge(refreshTokenValidityInSeconds)
+                .sameSite("Lax");
+        if (cookieDomain != null && !cookieDomain.isEmpty()) {
+            builder.domain(cookieDomain);
+        }
+        response.addHeader(HttpHeaders.SET_COOKIE, builder.build().toString());
     }
 
     private String encode(String value) {

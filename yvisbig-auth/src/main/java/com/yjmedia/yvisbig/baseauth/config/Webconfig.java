@@ -2,6 +2,7 @@ package com.yjmedia.yvisbig.baseauth.config;
 
 import com.yjmedia.yvisbig.bizcom.config.HttpHeaderDefaultType;
 import com.yjmedia.yvisbig.bizcom.interceptor.ActionLoggerInterceptor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -12,16 +13,19 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.nio.charset.Charset;
 
 @Configuration
-
 public class Webconfig implements WebMvcConfigurer{
+
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("*")
+                .allowedOrigins(allowedOrigins.split(","))
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .exposedHeaders("Authorization");
+                .exposedHeaders("Authorization")
+                .allowCredentials(true);
    }
 
     @Bean

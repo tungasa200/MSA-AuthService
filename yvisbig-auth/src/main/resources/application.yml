@@ -80,6 +80,14 @@ jwt:
   token-validity-in-seconds: 3600  # 1시간
   refresh-token-validity-in-seconds: 2592000  # 30일
 
+# 서브도메인 CORS/쿠키 설정
+app:
+  cors:
+    allowed-origins: http://localhost:81,http://localhost:8085
+  cookie:
+    domain: localhost
+    secure: false
+
 # 언론사 정보 설정
 media:
   configs:
@@ -196,6 +204,14 @@ jwt:
   system-secret: REMOVED_JWT_SECRET
   token-validity-in-seconds: 3600  # 1시간
   refresh-token-validity-in-seconds: 2592000  # 30일
+
+# 서브도메인 CORS/쿠키 설정
+app:
+  cors:
+    allowed-origins: https://service.example.com,https://auth.example.com
+  cookie:
+    domain: .example.com
+    secure: true
 
 # Service DB 연결 설정 (MH_USERS 조회용)
 service:
