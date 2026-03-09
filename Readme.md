@@ -36,7 +36,9 @@
 | 기능 | 설명 |
 |------|------|
 | **JWT 토큰 발급** | HMAC 검증 후 JWT Access Token 발급 |
-| **토큰 갱신** | Refresh Token을 통한 토큰 재발급 |
+| **토큰 갱신** | Refresh Token Rotation을 통한 토큰 재발급 |
+| **SNS OAuth2 로그인** | 카카오/네이버/구글/페이스북 소셜 로그인 지원 |
+| **일반 로그인** | ID/PW 기반 로그인 (KISA SHA-256) |
 | **언론사 키 관리** | 언론사별 비밀키 암호화 저장 및 관리 |
 | **사용자 관리** | 언론사 사용자 정보 등록 및 업데이트 |
 | **역할 기반 접근 제어** | RBAC(Role-Based Access Control) 적용 |
@@ -152,14 +154,22 @@ com.yjmedia.yvisbig.baseauth
 │   └── ActionLogAop.java             # API 로깅 AOP
 ├── config/
 │   ├── DataSourceConfig.java         # DB 연결 설정
+│   ├── MediaProperties.java          # 언론사 설정
+│   ├── SnsProviderProperties.java    # SNS OAuth2 프로바이더 설정
 │   ├── SwaggerConfig.java            # Swagger 설정
-│   └── WebConfig.java                # 웹 설정
+│   └── Webconfig.java                # 웹/CORS 설정
 ├── module/
 │   ├── auth/
-│   │   ├── AuthCoreApi.java          # REST Controller
-│   │   ├── AuthCoreService.java      # 비즈니스 로직
+│   │   ├── AuthApi.java              # 일반 로그인/토큰 갱신 REST Controller
+│   │   ├── AuthCoreService.java      # HMAC 방식 인증 비즈니스 로직
 │   │   ├── AuthRepository.java       # MyBatis Repository
-│   │   └── CustomUserDetailsService.java
+│   │   ├── CustomUserDetailsService.java
+│   │   ├── RefreshTokenService.java  # Refresh Token Redis 관리
+│   │   ├── SnsAuthApi.java           # SNS OAuth2 REST Controller
+│   │   ├── SnsLoginService.java      # SNS OAuth2 비즈니스 로직
+│   │   ├── SnsUserRepository.java    # SNS 사용자 DB 접근
+│   │   ├── UserLoginRepository.java  # 일반 로그인 DB 접근
+│   │   └── UserLoginService.java     # 일반 로그인 비즈니스 로직
 │   ├── batch/
 │   │   ├── SchAuthService.java       # 배치 서비스
 │   │   ├── SchAuthRepository.java    # 배치 Repository
@@ -167,10 +177,14 @@ com.yjmedia.yvisbig.baseauth
 │   └── healthcheck/
 │       └── HealthCheckApi.java       # 헬스체크 API
 └── voProtocol/
-    ├── SvrGetTokenReqVO.java         # 토큰 요청 VO
-    ├── SvrGetTokenResVO.java         # 토큰 응답 VO
-    ├── SvrRefreshTokenReqVO.java     # 갱신 요청 VO
-    └── SvrRefreshTokenResVO.java     # 갱신 응답 VO
+    ├── SnsUserDTO.java               # SNS 사용자 정보 DTO
+    ├── SvrGetTokenReqVO.java         # HMAC 토큰 요청 VO
+    ├── SvrGetTokenResVO.java         # HMAC 토큰 응답 VO
+    ├── SvrRefreshTokenReqVO.java     # HMAC 갱신 요청 VO
+    ├── SvrRefreshTokenResVO.java     # HMAC 갱신 응답 VO
+    ├── UserLoginReqVO.java           # 일반 로그인 요청 VO
+    ├── UserLoginResVO.java           # 일반 로그인 응답 VO
+    └── UserRefreshReqVO.java         # 토큰 갱신 요청 VO
 ```
 
 #### yvisbig-common 모듈
@@ -621,24 +635,118 @@ public class ServerErrorResponse {
 
 ## 8. API 명세
 
-### 8.1 인증 API (`/v1/auth-svr`)
+### 8.1 일반 로그인/토큰 API (`/v1/auth-svr/auth`)
 
-#### GET /simplecheck
+#### POST /auth/login
 
-**설명**: API 서버 상태 확인
+**설명**: ID/PW 기반 로그인, JWT 발급
 
 | 항목 | 내용 |
 |------|------|
-| URL | `/v1/auth-svr/simplecheck` |
-| Method | GET |
+| URL | `/v1/auth-svr/auth/login` |
+| Method | POST |
+| Content-Type | `application/json` |
 | 권한 | PUBLIC |
-| 응답 | `"hi - check ok"` |
+
+**Request Body**:
+```json
+{
+  "mediaId": "YJMEDIA",
+  "userId": "user001",
+  "password": "비밀번호",
+  "lastLoginIp": "127.0.0.1"
+}
+```
+
+**Response Body** (성공):
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzUxMiJ9...",
+  "tokenType": "Bearer",
+  "expiresIn": 3600,
+  "userId": "user001",
+  "userNm": "홍길동",
+  "mediaId": "YJMEDIA"
+}
+```
+
+> Refresh Token은 `msa_refresh_token` httpOnly 쿠키로 설정됩니다 (응답 JSON에 미포함).
 
 ---
 
+#### POST /auth/refresh
+
+**설명**: Access Token 갱신 (Refresh Token Rotation)
+
+| 항목 | 내용 |
+|------|------|
+| URL | `/v1/auth-svr/auth/refresh` |
+| Method | POST |
+| 권한 | PUBLIC |
+
+**Request Body**:
+```json
+{
+  "mediaId": "YJMEDIA",
+  "userId": "user001",
+  "refreshToken": "(쿠키 없을 때만 body에 포함)"
+}
+```
+
+> `msa_refresh_token` 쿠키가 있으면 body의 refreshToken보다 쿠키를 우선 사용합니다.
+
+**Response**: `/auth/login`과 동일 구조
+
+---
+
+### 8.2 SNS OAuth2 API (`/v1/auth-svr/auth/sns`)
+
+#### GET /auth/sns/authorize/{provider}
+
+**설명**: SNS 소셜 로그인 인가 페이지로 리다이렉트
+
+| 항목 | 내용 |
+|------|------|
+| URL | `/v1/auth-svr/auth/sns/authorize/{provider}` |
+| Method | GET |
+| 권한 | PUBLIC |
+| Path Variable | `provider`: `kakao` / `naver` / `google` / `facebook` |
+| Query Param | `redirectUri` (선택): 로그인 완료 후 클라이언트 콜백 URL |
+
+**동작**: State 생성 후 Redis 저장 → SNS 인가 페이지로 302 리다이렉트
+
+---
+
+#### GET /auth/sns/callback/{provider}
+
+**설명**: SNS 인가 후 콜백. JWT 발급 후 클라이언트로 리다이렉트
+
+| 항목 | 내용 |
+|------|------|
+| URL | `/v1/auth-svr/auth/sns/callback/{provider}` |
+| Method | GET |
+| 권한 | PUBLIC (SNS가 호출) |
+| Query Params | `code`, `state` (또는 `error`, `error_description`) |
+
+**성공 시 리다이렉트**:
+```
+{redirectUri}?accessToken=eyJ...&tokenType=Bearer&expiresIn=3600&userId=xxx&userNm=홍길동
+```
+
+> Refresh Token은 `msa_refresh_token` httpOnly 쿠키로 설정됩니다.
+
+**실패 시 리다이렉트**:
+```
+{defaultRedirectUri}?error=sns_auth_failed&message=...
+```
+
+---
+
+### 8.3 HMAC 방식 토큰 API (레거시)
+
 #### POST /getToken
 
-**설명**: HMAC 검증 후 JWT 토큰 발급
+**설명**: HMAC 검증 후 JWT 토큰 발급 (서버간 연동용)
 
 | 항목 | 내용 |
 |------|------|
@@ -670,17 +778,6 @@ public class ServerErrorResponse {
 }
 ```
 
-**Response Body** (실패):
-```json
-{
-  "bizErrCode": 22001,
-  "message": "Not Auth",
-  "detailMessage": "인증실패:HMAC 인증 실패.",
-  "path": "/v1/auth-svr/getToken",
-  "messageKey": "NOT_AUTH"
-}
-```
-
 **HMAC 해시 생성 방법**:
 ```
 message = mediaId + userId + userNm + callDate
@@ -691,7 +788,7 @@ hmacHash = HMAC-SHA256(message, mediaSecretKey)
 
 #### POST /refreshToken
 
-**설명**: 토큰 갱신 (재발급)
+**설명**: HMAC 방식 토큰 갱신
 
 | 항목 | 내용 |
 |------|------|
@@ -731,7 +828,7 @@ Request/Response는 `/getToken`과 동일합니다.
 
 ---
 
-### 8.2 Swagger UI
+### 8.4 Swagger UI
 
 | 환경 | URL |
 |------|-----|
@@ -742,7 +839,68 @@ Request/Response는 `/getToken`과 동일합니다.
 
 ## 9. 인증 흐름
 
-### 9.1 토큰 발급 시퀀스
+### 9.1 SNS OAuth2 로그인 흐름
+
+```
+┌────────┐    ┌──────────────┐    ┌──────────────┐    ┌─────────┐    ┌──────────┐
+│ Client │    │  Auth Server │    │  SNS Provider│    │  MySQL  │    │  Redis   │
+└────┬───┘    └──────┬───────┘    └──────┬───────┘    └────┬────┘    └────┬─────┘
+     │               │                   │                  │              │
+     │  1. GET /auth/sns/authorize/kakao?redirectUri=...    │              │
+     │───────────────▶│                  │                  │              │
+     │               │  2. state 생성 → Redis 저장 (10분)   │              │
+     │               │──────────────────────────────────────────────────────▶
+     │               │                  │                  │              │
+     │  3. 302 → 카카오 인가 페이지     │                  │              │
+     │◀───────────────│                  │                  │              │
+     │               │                  │                  │              │
+     │  4. 사용자 카카오 로그인 & 동의  │                  │              │
+     │──────────────────────────────────▶                   │              │
+     │               │                  │                  │              │
+     │               │  5. GET /auth/sns/callback/kakao?code=xxx&state=yyy │
+     │               │◀─────────────────│                  │              │
+     │               │                  │                  │              │
+     │               │  6. state 검증 (Redis)               │              │
+     │               │──────────────────────────────────────────────────────▶
+     │               │  7. code → Access Token 교환         │              │
+     │               │──────────────────▶                   │              │
+     │               │  8. 사용자 정보 조회                 │              │
+     │               │──────────────────▶                   │              │
+     │               │  9. MH_EXT_MEMBER 조회/생성          │              │
+     │               │─────────────────────────────────────▶│              │
+     │               │  10. JWT 발급 + Refresh Token 생성   │              │
+     │               │──────────────────────────────────────────────────────▶
+     │               │                  │                  │              │
+     │  11. 302 → {redirectUri}?accessToken=xxx + 쿠키(msa_refresh_token)  │
+     │◀───────────────│                  │                  │              │
+```
+
+### 9.2 일반 로그인 흐름
+
+```
+┌────────┐       ┌────────────┐       ┌────────────┐       ┌─────────┐
+│ Client │       │  Auth API  │       │  Database  │       │  Redis  │
+└────┬───┘       └─────┬──────┘       └─────┬──────┘       └────┬────┘
+     │                 │                    │                   │
+     │  1. POST /auth/login                 │                   │
+     │  (mediaId, userId, password)         │                   │
+     │────────────────▶│                    │                   │
+     │                 │  2. MH_EXT_MEMBER 조회                 │
+     │                 │───────────────────▶│                   │
+     │                 │  3. KISA SHA-256 비밀번호 검증         │
+     │                 │                    │                   │
+     │                 │  4. JWT 생성 (HS512, 1시간)            │
+     │                 │  5. Refresh Token 생성 → Redis 저장    │
+     │                 │────────────────────────────────────────▶
+     │                 │  6. 로그인 정보 업데이트               │
+     │                 │───────────────────▶│                   │
+     │                 │                    │                   │
+     │  7. { accessToken, tokenType, expiresIn, userId, userNm }│
+     │  + Set-Cookie: msa_refresh_token (httpOnly, 30일)        │
+     │◀────────────────│                    │                   │
+```
+
+### 9.3 HMAC 방식 토큰 발급 시퀀스 (서버간 연동)
 
 ```
 ┌────────┐       ┌────────────┐       ┌────────────┐       ┌─────────┐
@@ -778,7 +936,7 @@ Request/Response는 `/getToken`과 동일합니다.
      │                 │                    │                   │
 ```
 
-### 9.2 API 요청 인증 흐름
+### 9.4 API 요청 인증 흐름
 
 ```
 ┌────────┐       ┌────────────────┐       ┌─────────────┐       ┌────────────┐
@@ -809,20 +967,21 @@ Request/Response는 `/getToken`과 동일합니다.
      │                   │                       │                    │
 ```
 
-### 9.3 JWT 토큰 구조
+### 9.5 JWT 토큰 구조
 
 ```
 Header:
 {
-  "alg": "HS512"
+  "alg": "HS512",
+  "typ": "JWT"
 }
 
 Payload:
 {
-  "mediaId": "HANKOOK",
+  "sub": "auth",
+  "mediaId": "YJMEDIA",
   "userId": "user001",
-  "iat": 1702620000,
-  "exp": 1702706400
+  "exp": 1702623600
 }
 
 Signature:
@@ -831,10 +990,10 @@ HMACSHA512(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)
 
 | 클레임 | 설명 | 값 |
 |--------|------|-----|
-| mediaId | 언론사 ID | 클라이언트 제공 |
-| userId | 사용자 ID | 클라이언트 제공 |
-| iat | 발급 시간 | 현재 타임스탬프 |
-| exp | 만료 시간 | iat + 86400초 (1일) |
+| sub | 토큰 주체 | `"auth"` 고정 |
+| mediaId | 언론사 ID | 발급 시 설정 |
+| userId | 사용자 ID | 발급 시 설정 |
+| exp | 만료 시간 | 발급 시각 + 3600초 (1시간) |
 
 ---
 
@@ -919,9 +1078,63 @@ private static final String[] SKIP_PATHS = {
 jwt:
   header: Authorization
   system-secret: YVISBIGAUTHKEY80XXXZZZ...  # Base64 인코딩된 비밀키
-  token-validity-in-seconds: 86400          # Access Token: 24시간
-  refresh-token-validity-in-seconds: 604800 # Refresh Token: 7일
+  token-validity-in-seconds: 3600           # Access Token: 1시간
+  refresh-token-validity-in-seconds: 2592000 # Refresh Token: 30일
 ```
+
+### 10.5 SNS OAuth2 설정
+
+```yaml
+sns:
+  providers:
+    kakao:
+      client-id: <카카오 앱 키>
+      client-secret: <카카오 앱 시크릿>
+      authorization-uri: https://kauth.kakao.com/oauth/authorize
+      token-uri: https://kauth.kakao.com/oauth/token
+      user-info-uri: https://kapi.kakao.com/v2/user/me
+    naver:
+      client-id: <네이버 클라이언트 ID>
+      client-secret: <네이버 클라이언트 시크릿>
+      authorization-uri: https://nid.naver.com/oauth2.0/authorize
+      token-uri: https://nid.naver.com/oauth2.0/token
+      user-info-uri: https://openapi.naver.com/v1/nid/me
+    google:
+      client-id: <구글 클라이언트 ID>
+      client-secret: <구글 클라이언트 시크릿>
+      authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+      token-uri: https://www.googleapis.com/oauth2/v4/token
+      user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+    facebook:
+      client-id: <페이스북 앱 ID>
+      client-secret: <페이스북 앱 시크릿>
+      authorization-uri: https://www.facebook.com/v18.0/dialog/oauth
+      token-uri: https://graph.facebook.com/v18.0/oauth/access_token
+      user-info-uri: https://graph.facebook.com/me?fields=id,email,name
+  default-redirect-uri: http://localhost:81/sns/callback  # 로그인 완료 후 기본 리다이렉트
+
+app:
+  cors:
+    allowed-origins: http://localhost:81,http://localhost:8085  # 허용 출처
+  cookie:
+    domain: localhost
+    secure: false  # 운영 환경에서는 true
+```
+
+> SNS 각 프로바이더 개발자 콘솔에 콜백 URL 등록 필요:
+> `http://{서버주소}/v1/auth-svr/auth/sns/callback/{provider}`
+
+### 10.6 Refresh Token 쿠키 정책
+
+| 속성 | 값 |
+|------|-----|
+| 쿠키명 | `msa_refresh_token` |
+| HttpOnly | true (XSS 방어) |
+| Secure | false (로컬) / true (운영) |
+| SameSite | Lax |
+| Path | `/v1/auth-svr/auth` |
+| MaxAge | 2592000초 (30일) |
+| Domain | `app.cookie.domain` 설정값 |
 
 ---
 
@@ -1053,11 +1266,17 @@ public static String getPasswordEncryt(String msg)
 | 22003 | JWT_NOT_PERMISSION | Has not Permission | 권한 없음 |
 | 22004 | JWT_NOT_EXIST_USER | User not exist | 사용자 존재하지 않음 |
 | 22005 | JWT_REGIST_USEREREDIS_ERROR | User Redis Info error | 사용자 레디스 등록 오류 |
+| 22006 | JWT_INVALID_PASSWORD | Invalid password | 비밀번호 불일치 |
+| 22007 | JWT_INVALID_REFRESH_TOKEN | Invalid refresh token | 유효하지 않은 리프레시 토큰 |
 | 22010 | JWT_TOKEN_TIME_OUT | Token Timeout | 토큰 타임아웃 |
 | 22011 | JWT_TOKEN_REFRESH_DIFF | Token Auto Refresh Difference | 리프레시키 불일치 |
 | 22012 | JWT_TOKEN_REFRESH_TIMEOUT | Token Auto Refresh time out | 리프레시 토큰 만료 |
 | 22013 | LOGIN_DEVICEID_DIFF | device Id diff | 디바이스 ID 불일치 |
 | 22014 | LOGIN_CMDM_DIFF | client,driver check | 고객/기사 구분 필요 |
+| 22020 | JWT_SNS_INVALID_STATE | SNS state invalid | OAuth2 state 불일치 (CSRF 방어) |
+| 22021 | JWT_SNS_CONSENT_REQUIRED | SNS consent required | SNS 필수 동의 항목 미동의 (이름/이메일) |
+| 22022 | JWT_SNS_AUTH_FAILED | SNS auth failed | SNS 토큰 교환/사용자 정보 조회 실패 |
+| 22023 | JWT_SNS_USER_BLOCKED | SNS user blocked | 차단된 SNS 사용자 |
 
 #### 파일/요청 오류 (21xxx)
 
@@ -1438,10 +1657,10 @@ docker run -p 8085:8085 yvisbig-auth
 
 ### 16.3 토큰 유효기간
 
-| 토큰 유형 | 유효기간 |
-|----------|----------|
-| Access Token | 86,400초 (24시간) |
-| Refresh Token | 604,800초 (7일) |
+| 토큰 유형 | 유효기간 | 저장 방식 |
+|----------|----------|----------|
+| Access Token | 3,600초 (1시간) | 클라이언트 메모리/로컬스토리지 |
+| Refresh Token | 2,592,000초 (30일) | httpOnly 쿠키 + Redis |
 
 ### 16.4 API 테스트 예시
 
@@ -1480,6 +1699,7 @@ String hmacHash = CryptoUtil.getHMAC(msg, "qwert1234", "HmacSHA256");
 | 1.0 | - | - | 최초 작성 |
 | 1.1 | - | - | 스케줄러 비활성화 |
 | 1.2 | - | - | H2 인메모리 DB 지원 추가 (로컬 테스트용) |
+| 1.3 | 2026-03 | - | SNS OAuth2 로그인 추가 (카카오/네이버/구글/페이스북), 일반 ID/PW 로그인 API 추가, Refresh Token Rotation 도입, httpOnly 쿠키 방식으로 Refresh Token 관리, Access Token 유효기간 24h→1h, Refresh Token 유효기간 7d→30d |
 
 ---
 
