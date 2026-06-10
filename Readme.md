@@ -116,6 +116,7 @@ yvisbig-auth-j/
 │   │   ├── module/
 │   │   │   ├── auth/                # 인증 모듈
 │   │   │   ├── batch/               # 배치/스케줄링
+│   │   │   ├── user/                # 사용자 관리
 │   │   │   └── healthcheck/         # 헬스체크
 │   │   └── voProtocol/              # Request/Response VO
 │   └── src/main/resources/
@@ -153,7 +154,7 @@ com.yjmedia.yvisbig.baseauth
 ├── aop/
 │   └── ActionLogAop.java             # API 로깅 AOP
 ├── config/
-│   ├── DataSourceConfig.java         # DB 연결 설정
+│   ├── DataSourceConfig.java         # Service DB 연결 설정 (service.datasource)
 │   ├── MediaProperties.java          # 언론사 설정
 │   ├── SnsProviderProperties.java    # SNS OAuth2 프로바이더 설정
 │   ├── SwaggerConfig.java            # Swagger 설정
@@ -161,6 +162,7 @@ com.yjmedia.yvisbig.baseauth
 ├── module/
 │   ├── auth/
 │   │   ├── AuthApi.java              # 일반 로그인/토큰 갱신 REST Controller
+│   │   ├── AuthCoreApi.java          # HMAC 방식 토큰 발급 REST Controller
 │   │   ├── AuthCoreService.java      # HMAC 방식 인증 비즈니스 로직
 │   │   ├── AuthRepository.java       # MyBatis Repository
 │   │   ├── CustomUserDetailsService.java
@@ -174,6 +176,8 @@ com.yjmedia.yvisbig.baseauth
 │   │   ├── SchAuthService.java       # 배치 서비스
 │   │   ├── SchAuthRepository.java    # 배치 Repository
 │   │   └── ScheduleAuth.java         # 스케줄러 (비활성화)
+│   ├── user/
+│   │   └── UserApi.java              # 사용자 관리 REST Controller
 │   └── healthcheck/
 │       └── HealthCheckApi.java       # 헬스체크 API
 └── voProtocol/
@@ -184,7 +188,9 @@ com.yjmedia.yvisbig.baseauth
     ├── SvrRefreshTokenResVO.java     # HMAC 갱신 응답 VO
     ├── UserLoginReqVO.java           # 일반 로그인 요청 VO
     ├── UserLoginResVO.java           # 일반 로그인 응답 VO
-    └── UserRefreshReqVO.java         # 토큰 갱신 요청 VO
+    ├── UserRefreshReqVO.java         # 토큰 갱신 요청 VO
+    ├── UserRegisterReqVO.java        # 회원 등록 요청 VO
+    └── UserRegisterResVO.java        # 회원 등록 응답 VO
 ```
 
 #### yvisbig-common 모듈
@@ -332,6 +338,8 @@ dependencies {
     // ... 기타 의존성
 }
 ```
+
+**DataSource 구성**: `service.datasource` 단일 DataSource 사용 (ws/service 프로젝트 DB)
 
 ### 5.2 yvisbig-common (공통 라이브러리)
 
@@ -1426,9 +1434,10 @@ spring:
 | 설정 | 값 |
 |------|-----|
 | 서버 포트 | 8085 |
-| DB URL | jdbc:mysql://REMOVED_DB_HOST:3306/yvisbig_local |
-| DB 사용자 | mysql |
+| Service DB URL | jdbc:mysql://REMOVED_DB_HOST:30199/mediahub_srv |
+| Service DB 사용자 | mediahub |
 | Redis Host | localhost:6379 |
+| Redis 세션 | 비활성화 (sessionUseYn: N) |
 | Redis Key Prefix | LOCAL |
 | Eureka 등록 | false |
 | 로그 경로 | C:\\Temp\\ |
@@ -1438,9 +1447,10 @@ spring:
 | 설정 | 값 |
 |------|-----|
 | 서버 포트 | 8085 |
-| DB URL | jdbc:mysql://REMOVED_DB_HOST:3306/yvisbig_local |
-| DB 사용자 | dev |
-| Redis Host | REMOVED_REDIS_HOST |
+| Service DB URL | jdbc:mysql://REMOVED_DB_HOST:3306/mediahub_srv |
+| Service DB 사용자 | ${SERVICE_DB_USERNAME} |
+| Redis Host | REMOVED_REDIS_HOST:6379 |
+| Redis 세션 | 활성화 (sessionUseYn: Y) |
 | Redis Key Prefix | DEV |
 | Eureka 등록 | true |
 | 로그 경로 | /opt/project_kdmp/msasvr_auth/logs |
@@ -1459,8 +1469,8 @@ server:
 jwt:
   header: Authorization
   system-secret: YVISBIGAUTHKEY80XXXZZZ...
-  token-validity-in-seconds: 86400      # 24시간
-  refresh-token-validity-in-seconds: 604800  # 7일
+  token-validity-in-seconds: 3600        # 1시간
+  refresh-token-validity-in-seconds: 2592000  # 30일
 
 # 데이터소스 설정
 spring:
@@ -1544,84 +1554,8 @@ java -jar -Dspring.profiles.active=prod \
 | API 테스트 | http://localhost:8085/v1/auth-svr/simplecheck |
 | Swagger UI | http://localhost:8085/swagger-ui.html |
 | API Docs | http://localhost:8085/api-docs/json |
-| H2 Console | http://localhost:8085/h2-console |
 
-### 15.4 H2 인메모리 DB (로컬 테스트용)
-
-Local 환경에서는 외부 MySQL/Redis 없이 H2 인메모리 데이터베이스로 테스트할 수 있습니다.
-
-> **Note**: yvisbig-auth와 yvisbig-api 모두 H2를 지원합니다.
-
-#### H2 Console 접속 정보
-
-| 모듈 | URL | JDBC URL | Username | Password |
-|------|-----|----------|----------|----------|
-| yvisbig-auth | http://localhost:8085/h2-console | `jdbc:h2:mem:testdb` | `sa` | (빈값) |
-| yvisbig-api | http://localhost:8087/h2-console | `jdbc:h2:mem:testdb` | `sa` | (빈값) |
-
-> Driver Class: `org.h2.Driver` (공통)
-
-#### 자동 생성 테이블
-
-각 모듈 시작 시 `schema.sql`과 `data.sql`이 자동 실행됩니다.
-
-**schema.sql** - 테이블 구조:
-```sql
--- 언론사 키 정보
-CREATE TABLE svr_media_key (
-    media_id VARCHAR(100),
-    media_key VARCHAR(100) PRIMARY KEY,
-    media_secret_key VARCHAR(1000),
-    create_id VARCHAR(50),
-    create_dt TIMESTAMP,
-    update_id VARCHAR(50),
-    update_dt TIMESTAMP
-);
-
--- 서버 사용자 정보
-CREATE TABLE svr_user (
-    user_sq INT AUTO_INCREMENT PRIMARY KEY,
-    media_id VARCHAR(100),
-    user_id VARCHAR(100),
-    user_nm VARCHAR(100),
-    ...
-);
-```
-
-**data.sql** - 테스트 데이터:
-```sql
--- 테스트용 언론사 키
-INSERT INTO svr_media_key (media_id, media_key, media_secret_key, ...)
-VALUES ('HANKOOK', '12312s3213123xqweqwe123', '암호화된비밀키', ...);
-
--- 테스트용 사용자
-INSERT INTO svr_user (media_id, user_id, user_nm, ...)
-VALUES ('HANKOOK', 'testuser001', '테스트유저', ...);
-```
-
-#### 설정 (application.yml - local 프로필)
-
-```yaml
-spring:
-  datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
-      data-locations: classpath:data.sql
-  redis:
-    sessionUseYn: N  # Redis 비활성화
-```
-
-### 15.6 Docker 실행 (선택)
+### 15.4 Docker 실행 (선택)
 
 ```dockerfile
 FROM openjdk:8-jdk-alpine
@@ -1698,8 +1632,9 @@ String hmacHash = CryptoUtil.getHMAC(msg, "qwert1234", "HmacSHA256");
 |------|------|--------|------|
 | 1.0 | - | - | 최초 작성 |
 | 1.1 | - | - | 스케줄러 비활성화 |
-| 1.2 | - | - | H2 인메모리 DB 지원 추가 (로컬 테스트용) |
+| 1.2 | - | - | Local 환경 DB 설정 변경 (mediahub_srv), Service DB 이중화 구성 반영 |
 | 1.3 | 2026-03 | - | SNS OAuth2 로그인 추가 (카카오/네이버/구글/페이스북), 일반 ID/PW 로그인 API 추가, Refresh Token Rotation 도입, httpOnly 쿠키 방식으로 Refresh Token 관리, Access Token 유효기간 24h→1h, Refresh Token 유효기간 7d→30d |
+| 1.4 | 2026-06 | - | 패키지 구조 업데이트 (ServiceDataSourceConfig, AuthCoreApi, UserApi, UserRegisterVO 추가), JWT 유효기간 문서 수정, H2 섹션 제거 |
 
 ---
 

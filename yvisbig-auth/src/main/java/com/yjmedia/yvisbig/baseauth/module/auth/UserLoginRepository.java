@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Param;
 
 /**
  * 사용자 로그인 관련 Repository
- * Service DB의 MH_USERS 테이블 조회
+ * Service DB(mediahub_srv)의 MH_EXT_MEMBER 테이블 조회
  */
 @Mapper
 public interface UserLoginRepository {

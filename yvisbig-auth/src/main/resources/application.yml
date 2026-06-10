@@ -26,13 +26,6 @@ spring:
   config:
     activate:
       on-profile: local
-  # 기본 datasource (auth 서버 자체 테이블용) - HikariCP 자동 설정
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    jdbc-url: jdbc:mysql://REMOVED_DB_HOST:30199/mediahub_srv?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-    username: mediahub
-    password: REMOVED_PASSWORD
-    maximum-pool-size: 5
   # H2 콘솔 비활성화 (MySQL 사용)
   h2:
     console:
@@ -126,14 +119,14 @@ sns:
       scope: email
   default-redirect-uri: http://localhost:81/sns/callback
 
-# Service DB 연결 설정 (MH_USERS 조회용) - service와 동일한 DB 사용
+# Service DB (ws/service 프로젝트 DB - MH_EXT_MEMBER 조회용)
 service:
   datasource:
-    enabled: true
     driver-class-name: com.mysql.cj.jdbc.Driver
     jdbc-url: jdbc:mysql://REMOVED_DB_HOST:30199/mediahub_srv?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
     username: mediahub
     password: REMOVED_PASSWORD
+    maximum-pool-size: 5
 
 spring-doc:
   packages-to-scan: com.yjmedia.yvisbig.baseauth
@@ -159,13 +152,6 @@ spring:
   config:
     activate:
       on-profile: dev
-  datasource:
-    hikari:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/yvisbig_local?autoReconnect=true&useSSL=false&amp&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-      username: dev
-      password: REMOVED_PASSWORD
-      maximum-pool-size: 10
   redis:
     lettuce:
       pool.max-active: 10
@@ -213,14 +199,14 @@ app:
     domain: .example.com
     secure: true
 
-# Service DB 연결 설정 (MH_USERS 조회용)
+# Service DB (ws/service 프로젝트 DB - MH_EXT_MEMBER 조회용)
 service:
   datasource:
-    enabled: true
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/gobgnews?autoReconnect=true&useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+    jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/mediahub_srv?autoReconnect=true&useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
     username: ${SERVICE_DB_USERNAME:dev}
     password: ${SERVICE_DB_PASSWORD:asdf1234}
+    maximum-pool-size: 10
 
 spring-doc:
   packages-to-scan: com.yjmedia.yvisbig.baseauth
