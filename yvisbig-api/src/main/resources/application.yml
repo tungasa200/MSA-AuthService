@@ -106,7 +106,7 @@ spring:
   datasource:
     hikari:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/yvisbig_local?autoReconnect=true&useSSL=false&amp&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+      jdbc-url: jdbc:mysql://${DB_HOST}:${DB_PORT}/yvisbig_local?autoReconnect=true&useSSL=false&amp&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
       username: ${DB_USERNAME}
       password: ${DB_PASSWORD}
       maximum-pool-size: 10
@@ -116,7 +116,7 @@ spring:
       pool.max-idle: 10
       pool.min-idle: 2
     port: 6379
-    host: REMOVED_REDIS_HOST
+    host: ${REDIS_HOST}
     password: ${REDIS_PASSWORD}
     sessiontime: 3600000
     sessionUseYn: Y

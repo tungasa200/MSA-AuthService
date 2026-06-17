@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets;
 
 
 public class CryptoUtil {
-	private static String  default_salt_key = "REMOVED_SALT_KEY";
+	private static String default_salt_key = System.getenv("CRYPTO_SALT_KEY");
 	/**
 	 * MD5 로 해시 한다.
 	 * 
