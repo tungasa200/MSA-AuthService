@@ -75,7 +75,7 @@ logging:
 
 jwt:
   header: Authorization
-  system-secret: REMOVED_JWT_SECRET
+  system-secret: ${JWT_SECRET}
   token-validity-in-seconds: 86400  #하루
   refresh-token-validity-in-seconds: 604800  # 7일
 
@@ -107,8 +107,8 @@ spring:
     hikari:
       driver-class-name: com.mysql.cj.jdbc.Driver
       jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/yvisbig_local?autoReconnect=true&useSSL=false&amp&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-      username: dev
-      password: REMOVED_PASSWORD
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
       maximum-pool-size: 10
   redis:
     lettuce:
@@ -117,7 +117,7 @@ spring:
       pool.min-idle: 2
     port: 6379
     host: REMOVED_REDIS_HOST
-    password: REMOVED_PASSWORD
+    password: ${REDIS_PASSWORD}
     sessiontime: 3600000
     sessionUseYn: Y
     keyprefix: DEV
@@ -144,7 +144,7 @@ logging:
 
 jwt:
   header: Authorization
-  system-secret: REMOVED_JWT_SECRET
+  system-secret: ${JWT_SECRET}
   token-validity-in-seconds: 86400
   refresh-token-validity-in-seconds: 604800  # token-validity-in-seconds 기본 + 60분 ==> 클라이언트 테스트를 위한 259200
 

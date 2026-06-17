@@ -69,7 +69,7 @@ logging:
 
 jwt:
   header: Authorization
-  system-secret: REMOVED_JWT_SECRET
+  system-secret: ${JWT_SECRET}
   token-validity-in-seconds: 3600  # 1시간
   refresh-token-validity-in-seconds: 2592000  # 30일
 
@@ -84,35 +84,35 @@ app:
 # 언론사 정보 설정
 media:
   configs:
-    - media-id: YJMEDIA
-      media-key: REMOVED_MEDIA_KEY
-      media-secret: REMOVED_MEDIA_SECRET
+    - media-id: ${MEDIA_ID}
+      media-key: ${MEDIA_KEY}
+      media-secret: ${MEDIA_SECRET}
 
 # SNS OAuth2 프로바이더 설정
 sns:
   providers:
     kakao:
-      client-id: REMOVED_KAKAO_CLIENT_ID
-      client-secret: REMOVED_KAKAO_CLIENT_SECRET
+      client-id: ${KAKAO_CLIENT_ID}
+      client-secret: ${KAKAO_CLIENT_SECRET}
       authorization-uri: https://kauth.kakao.com/oauth/authorize
       token-uri: https://kauth.kakao.com/oauth/token
       user-info-uri: https://kapi.kakao.com/v2/user/me
     naver:
-      client-id: REMOVED_NAVER_CLIENT_ID
-      client-secret: REMOVED_NAVER_CLIENT_SECRET
+      client-id: ${NAVER_CLIENT_ID}
+      client-secret: ${NAVER_CLIENT_SECRET}
       authorization-uri: https://nid.naver.com/oauth2.0/authorize
       token-uri: https://nid.naver.com/oauth2.0/token
       user-info-uri: https://openapi.naver.com/v1/nid/me
     google:
-      client-id: REMOVED_GOOGLE_CLIENT_ID
-      client-secret: REMOVED_GOOGLE_CLIENT_SECRET
+      client-id: ${GOOGLE_CLIENT_ID}
+      client-secret: ${GOOGLE_CLIENT_SECRET}
       authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
       token-uri: https://www.googleapis.com/oauth2/v4/token
       user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
       scope: profile email
     facebook:
-      client-id: REMOVED_FACEBOOK_CLIENT_ID
-      client-secret: REMOVED_FACEBOOK_CLIENT_SECRET
+      client-id: ${FACEBOOK_CLIENT_ID}
+      client-secret: ${FACEBOOK_CLIENT_SECRET}
       authorization-uri: https://www.facebook.com/v18.0/dialog/oauth
       token-uri: https://graph.facebook.com/v18.0/oauth/access_token
       user-info-uri: https://graph.facebook.com/me?fields=id,email,name
@@ -124,8 +124,8 @@ service:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     jdbc-url: jdbc:mysql://REMOVED_DB_HOST:30199/mediahub_srv?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-    username: mediahub
-    password: REMOVED_PASSWORD
+    username: ${SERVICE_DB_USERNAME}
+    password: ${SERVICE_DB_PASSWORD}
     maximum-pool-size: 5
 
 spring-doc:
@@ -159,7 +159,7 @@ spring:
       pool.min-idle: 2
     port: 6379
     host: REMOVED_REDIS_HOST
-    password: REMOVED_PASSWORD
+    password: ${REDIS_PASSWORD}
     sessiontime: 3600000
     sessionUseYn: Y
     keyprefix: DEV
@@ -187,7 +187,7 @@ logging:
 
 jwt:
   header: Authorization
-  system-secret: REMOVED_JWT_SECRET
+  system-secret: ${JWT_SECRET}
   token-validity-in-seconds: 3600  # 1시간
   refresh-token-validity-in-seconds: 2592000  # 30일
 
@@ -204,8 +204,8 @@ service:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     jdbc-url: jdbc:mysql://REMOVED_DB_HOST:3306/mediahub_srv?autoReconnect=true&useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-    username: ${SERVICE_DB_USERNAME:dev}
-    password: ${SERVICE_DB_PASSWORD:asdf1234}
+    username: ${SERVICE_DB_USERNAME}
+    password: ${SERVICE_DB_PASSWORD}
     maximum-pool-size: 10
 
 spring-doc:

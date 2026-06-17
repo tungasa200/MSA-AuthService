@@ -43,3 +43,8 @@ bin/
 
 .claude
 /.claude
+
+### Secrets ###
+.env
+.env.local
+.env.*.local
